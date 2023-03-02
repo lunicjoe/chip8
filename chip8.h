@@ -10,7 +10,7 @@
 typedef struct {
     char graphics_memory[SCREEN_WIDTH * SCREEN_HEIGHT];
     uint16_t opcode;
-    uint16_t chip8_memory[4096];
+    uint8_t memory[4096];
     uint8_t chip8_V[16];
     uint8_t index;
     uint16_t pc;
