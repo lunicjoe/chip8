@@ -7,6 +7,7 @@
 #define PIXEL_SIZE 10
 #define SCREEN_WIDTH 64
 #define SCREEN_HEIGHT 32
+#define FONT_ADDRESS 0x50
 #define START_ADDRESS 0x200
 
 typedef struct {

@@ -16,7 +16,7 @@ int keys[] = {
         29, 27, 6, 25
 };
 
-uint8_t characters[] = {
+uint8_t font[] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
         0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -47,7 +47,7 @@ void chip8_init() {
         chip8.pressed_key[i] = false;
     }
     for (int i = 0; i < 5 * 0xf; i++) {
-        chip8.memory[0x50 + i] = characters[i];
+        chip8.memory[FONT_ADDRESS + i] = font[i];
     }
 }
 
@@ -89,7 +89,7 @@ void chip8_cycle() {
     for (int i = 0; i < 16; i++) {
         chip8.pressed_key[i] = SDL_GetKeyboardState(NULL)[keys[i]] == 1;
     }
-    char instruction[0xff] = "";
+    char instruction[INSTRUCTION_SIZE] = "";
     uint16_t instruction_address = chip8.pc;
     chip8.opcode = (chip8.memory[chip8.pc] << 8) | chip8.memory[chip8.pc + 1];
     switch (chip8.opcode & 0xf000) {
@@ -312,7 +312,7 @@ void chip8_return() {
 }
 
 void chip8_font_character() {
-    chip8.index = chip8.V[get_0x00()] * 5 + 0x50;
+    chip8.index = FONT_ADDRESS + chip8.V[get_0x00()] * 5;
 }
 
 void chip8_add_v_to_index() {
