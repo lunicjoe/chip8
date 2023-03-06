@@ -59,11 +59,27 @@ void chip8_load_rom(char *file) {
     uint8_t *rom_buffer = (uint8_t*) malloc(sizeof(uint8_t) * rom_size);
     fread(rom_buffer, sizeof(uint8_t), rom_size, rom);
     fclose(rom);
-    for (int i = 0; i < rom_size; i+=2) {
+    for (int i = 0; i < rom_size; i += 2) {
         chip8.memory[0x200 + i] = rom_buffer[i];
         chip8.memory[0x200 + i + 1] = rom_buffer[i + 1];
     }
     chip8.memory[0x200 + 0x1ff] = 4;
+}
+
+uint8_t get_0x00() {
+    return (chip8.opcode & 0x0f00) >> 8;
+}
+
+uint8_t get_00x0() {
+    return (chip8.opcode & 0x00f0) >> 4;
+}
+
+uint8_t get_00xx() {
+    return chip8.opcode & 0x00ff;
+}
+
+uint16_t get_0xxx() {
+    return chip8.opcode & 0x0fff;
 }
 
 void chip8_cycle() {
@@ -72,10 +88,10 @@ void chip8_cycle() {
     }
     char instruction[0xff] = "";
     uint16_t instruction_address = chip8.pc;
-    chip8.opcode = (chip8.memory[chip8.pc]<<8) | chip8.memory[chip8.pc + 1];
+    chip8.opcode = (chip8.memory[chip8.pc] << 8) | chip8.memory[chip8.pc + 1];
     switch (chip8.opcode & 0xf000) {
         case 0x0000:
-            switch (chip8.opcode & 0x00ff) {
+            switch (get_00xx()) {
                 case 0x00e0:
                     strncpy(instruction, "cls", 100);
                     chip8_clear();
@@ -91,99 +107,99 @@ void chip8_cycle() {
             chip8_jump();
             break;
         case 0x2000:
-            bytecode_log("call 0x%X", (chip8.opcode & 0x0fff));
+            bytecode_log("call 0x%X", get_0xxx());
             chip8_call();
             break;
         case 0x3000:
-            bytecode_log("skip if V%X == 0x%X", (chip8.opcode & 0xf00)>>8, chip8.opcode & 0x00ff);
-            if (chip8.V[(chip8.opcode & 0x0f00)>>8] == (chip8.opcode & 0x00ff)) {
+            bytecode_log("skip if V%X == 0x%X", get_0x00(), get_00xx());
+            if (chip8.V[get_0x00()] == (get_00xx())) {
                 chip8.pc += 2;
             }
         case 0x4000:
-            bytecode_log("skip if V%X != 0x%X", (chip8.opcode & 0x0f00)>>8, chip8.opcode & 0x00ff);
-            if (chip8.V[(chip8.opcode & 0x0f00)>>8] != (chip8.opcode & 0x00ff)) {
+            bytecode_log("skip if V%X != 0x%X", get_0x00(), get_00xx());
+            if (chip8.V[get_0x00()] != (get_00xx())) {
                 chip8.pc += 2;
             }
             break;
         case 0x5000:
-            bytecode_log("skip if V%X == V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
-            if (chip8.V[(chip8.opcode & 0x0f00)>>8] == chip8.V[(chip8.opcode & 0x00f0)>>4]) {
+            bytecode_log("skip if V%X == V%X", get_0x00(), get_00x0());
+            if (chip8.V[get_0x00()] == chip8.V[get_00x0()]) {
                 chip8.pc += 2;
             }
         case 0x6000:
-            bytecode_log("mov V%X, 0x%X", (chip8.opcode & 0x0f00)>>8, chip8.opcode & 0x00ff);
+            bytecode_log("mov V%X, 0x%X", get_0x00(), get_00xx());
             chip8_move();
             break;
         case 0x7000:
-            bytecode_log("add V%X, 0x%X", (chip8.opcode & 0x0f00)>>8, chip8.opcode & 0x00ff);
+            bytecode_log("add V%X, 0x%X", get_0x00(), get_00xx());
             chip8_add();
             break;
         case 0x8000:
             switch (chip8.opcode & 0x000f) {
                 case 0x0:
-                    bytecode_log("V%X = V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
-                    chip8.V[(chip8.opcode & 0x0f00)>>8] = chip8.V[(chip8.opcode & 0x00f0)>>4];
+                    bytecode_log("V%X = V%X", get_0x00(), get_00x0());
+                    chip8.V[get_0x00()] = chip8.V[get_00x0()];
                     break;
                 case 0x1:
-                    bytecode_log("V%X |= V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
-                    chip8.V[(chip8.opcode & 0x0f00)>>8] |= chip8.V[(chip8.opcode & 0x00f0)>>4];
+                    bytecode_log("V%X |= V%X", get_0x00(), get_00x0());
+                    chip8.V[get_0x00()] |= chip8.V[get_00x0()];
                     break;
                 case 0x2:
-                    bytecode_log("V%X &= V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
-                    chip8.V[(chip8.opcode & 0x0f00)>>8] &= chip8.V[(chip8.opcode & 0x00f0)>>4];
+                    bytecode_log("V%X &= V%X", get_0x00(), get_00x0());
+                    chip8.V[get_0x00()] &= chip8.V[get_00x0()];
                     break;
                 case 0x3:
-                    bytecode_log("V%X ^= V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
-                    chip8.V[(chip8.opcode & 0x0f00)>>8] ^= chip8.V[(chip8.opcode & 0x00f0)>>4];
+                    bytecode_log("V%X ^= V%X", get_0x00(), get_00x0());
+                    chip8.V[get_0x00()] ^= chip8.V[get_00x0()];
                     break;
                 case 0x4:
-                    bytecode_log("V%X += V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
-                    chip8.V[(chip8.opcode & 0x0f00)>>8] += chip8.V[(chip8.opcode & 0x00f0)>>4];
+                    bytecode_log("V%X += V%X", get_0x00(), get_00x0());
+                    chip8.V[get_0x00()] += chip8.V[get_00x0()];
                     break;
                 case 0x5:
-                    bytecode_log("V%X -= V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
-                    chip8.V[(chip8.opcode & 0x0f00)>>8] -= chip8.V[(chip8.opcode & 0x00f0)>>4];
+                    bytecode_log("V%X -= V%X", get_0x00(), get_00x0());
+                    chip8.V[get_0x00()] -= chip8.V[get_00x0()];
                     break;
                 case 0x6:
-                    bytecode_log("V%X >>= 1", (chip8.opcode & 0x0f00)>>8);
-                    chip8.V[(chip8.opcode & 0x0f00)>>8] >>= 1;
+                    bytecode_log("V%X >>= 1", get_0x00());
+                    chip8.V[get_0x00()] >>= 1;
                     break;
                 case 0x7:
-                    bytecode_log("V%X = V%X - V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4, (chip8.opcode & 0x0f00)>>8);
-                    chip8.V[(chip8.opcode & 0x0f00)>>8] = chip8.V[(chip8.opcode & 0x00f0)>>4] - chip8.V[(chip8.opcode & 0x0f00)>>8];
+                    bytecode_log("V%X = V%X - V%X", get_0x00(), get_00x0(), get_0x00());
+                    chip8.V[get_0x00()] = chip8.V[get_00x0()] - chip8.V[get_0x00()];
                     break;
                 case 0xe:
-                    bytecode_log("V%X <<= 1", (chip8.opcode & 0x0f00));
-                    chip8.V[(chip8.opcode & 0x0f00)>>8] <<= 1;
+                    bytecode_log("V%X <<= 1", get_0x00());
+                    chip8.V[get_0x00()] <<= 1;
                     break;
             }
             break;
         case 0xa000:
-            bytecode_log("mvi 0x%X", chip8.opcode & 0x0fff);
+            bytecode_log("mvi 0x%X", get_0xxx());
             chip8_load_index();
             break;
         case 0xc000:
-            
             break;
         case 0xd000:
-            bytecode_log("draw V%X, V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
+            bytecode_log("draw V%X, V%X", get_0x00(), get_00x0());
             chip8_draw();
             break;
         case 0xe000:
-            switch (chip8.opcode & 0x00ff) {
+            switch (get_00xx()) {
                 case 0x9e:
-                    bytecode_log("skip if V%X key (0x%X) is pressed", (chip8.opcode & 0x0f00)>>8, (chip8.V[(chip8.opcode & 0x0f00)>>8]));
+                    bytecode_log("skip if V%X key (0x%X) is pressed", get_0x00(), (chip8.V[get_0x00()]));
                     chip8_v_pressed();
                     break;
                 case 0xa1:
-                    bytecode_log("skip if 0x%X not pressed", (chip8.opcode & 0x0f00)>>8);
+                    bytecode_log("skip if 0x%X not pressed", get_0x00());
                     chip8_pressed();
                     break;
             }
         case 0xf000:
-            switch (chip8.opcode & 0x00ff) {
+            switch (get_00xx()) {
                 case 0x1e:
-                    bytecode_log("index += V%X", (chip8.opcode & 0x0f00)>>8);
+                    bytecode_log("index += V%X", get_0x00());
+                    chip8_add_v_to_index();
                     break;
                 case 0x29:
                     bytecode_log("font character");
@@ -198,13 +214,13 @@ void chip8_cycle() {
                     chip8_reg_load();
                     break;
                 case 0x0a:
-                    bytecode_log("get key V%X", (chip8.opcode & 0x0f00)>>8);
+                    bytecode_log("get key V%X", get_0x00());
                     chip8_get_key();
                     break;
             }
     }
     printf("0x%04x: 0x%04x %s\n", instruction_address, chip8.opcode, instruction);
-    chip8.pc+=2;
+    chip8.pc += 2;
 }
 
 void chip8_clear() {
@@ -218,25 +234,25 @@ void chip8_jump() {
 }
 
 void chip8_move() {
-    chip8.V[(chip8.opcode & 0x0f00)>>8] = chip8.opcode & 0x00ff;
+    chip8.V[get_0x00()] = get_00xx();
 }
 
 void chip8_add() {
-    chip8.V[(chip8.opcode & 0x0f00)>>8] += chip8.opcode & 0x00ff;
+    chip8.V[get_0x00()] += get_00xx();
 }
 
 void chip8_load_index() {
-    chip8.index = chip8.opcode & 0x0fff;
+    chip8.index = get_0xxx();
 }
 
 void chip8_reg_dump() {
-    for (int i = 0; i <= (chip8.opcode & 0x0f00)>>8; i++) {
+    for (int i = 0; i <= get_0x00(); i++) {
         chip8.memory[0x200 + chip8.index + i] = chip8.V[i];
     }
 }
 
 void chip8_reg_load() {
-    for (int i = 0; i <= (chip8.opcode & 0x0f00)>>8; i++) {
+    for (int i = 0; i <= get_0x00(); i++) {
         chip8.V[i] = chip8.memory[0x200 + chip8.index + i];
     }
 }
@@ -250,20 +266,20 @@ void chip8_get_key() {
         }
     }
     if (pressed >= 0) {
-        chip8.V[(chip8.opcode & 0x0f00)>>8] = pressed;
+        chip8.V[get_0x00()] = pressed;
     } else {
         chip8.pc -= 2;
     }
 }
 
 void chip8_v_pressed() {
-    if (chip8.pressed_key[chip8.V[(chip8.opcode & 0x0f00)>>8]]) {
+    if (chip8.pressed_key[chip8.V[get_0x00()]]) {
         chip8.pc += 2;
     }
 }
 
 void chip8_pressed() {
-    if (!chip8.pressed_key[chip8.V[(chip8.opcode & 0x0f00)>>8]]) {
+    if (!chip8.pressed_key[chip8.V[get_0x00()]]) {
         chip8.pc += 2;
     }
 }
@@ -272,7 +288,7 @@ void chip8_call() {
     if (chip8.sp < 16) {
         chip8.stack[chip8.sp] = chip8.pc + 2;
         chip8.sp++;
-        chip8.pc = chip8.opcode & 0x0fff;
+        chip8.pc = get_0xxx();
         chip8.pc -= 2;
     } else {
         return;
@@ -287,13 +303,17 @@ void chip8_return() {
 }
 
 void chip8_font_character() {
-    chip8.index = chip8.V[(chip8.opcode & 0x0f00)>>8] * 5 + 0x50;
+    chip8.index = chip8.V[get_0x00()] * 5 + 0x50;
+}
+
+void chip8_add_v_to_index() {
+    chip8.index += chip8.V[get_0x00()];
 }
 
 void chip8_draw() {
     chip8.flag = 0;
-    const uint8_t x_sprite = chip8.V[(chip8.opcode & 0x0f00) >> 8];
-    const uint8_t y_sprite = chip8.V[(chip8.opcode & 0x00f0) >> 4];
+    const uint8_t x_sprite = chip8.V[get_0x00()];
+    const uint8_t y_sprite = chip8.V[get_00x0()];
     const uint8_t rows = chip8.opcode & 0x000f;
     for (int y = 0; y < rows; y++) {
         for (int x = 0; x < 8; x++) {

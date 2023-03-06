@@ -39,6 +39,7 @@ void chip8_pressed();
 void chip8_call();
 void chip8_return();
 void chip8_font_character();
+void chip8_add_v_to_index();
 void chip8_render(SDL_Renderer *renderer);
 void chip8_log();
 
