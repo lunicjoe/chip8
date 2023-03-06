@@ -96,11 +96,11 @@ void chip8_cycle() {
         case 0x0000:
             switch (get_00xx()) {
                 case 0x00e0:
-                    strncpy(instruction, "cls", INSTRUCTION_SIZE);
+                    bytecode_log("cls");
                     chip8_clear();
                     break;
                 case 0x00ee:
-                    strncpy(instruction, "return", INSTRUCTION_SIZE);
+                    bytecode_log("return");
                     chip8_return();
                     break;
             }
@@ -217,11 +217,11 @@ void chip8_cycle() {
                     chip8_font_character();
                     break;
                 case 0x55:
-                    strncpy(instruction, "reg dump", INSTRUCTION_SIZE);
+                    bytecode_log("reg dump");
                     chip8_reg_dump();
                     break;
                 case 0x65:
-                    strncpy(instruction, "reg load", INSTRUCTION_SIZE);
+                    bytecode_log("reg load");
                     chip8_reg_load();
                     break;
                 case 0x0a:
