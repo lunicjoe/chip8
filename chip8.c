@@ -162,8 +162,11 @@ void chip8_cycle() {
             bytecode_log("mvi 0x%X", chip8.opcode & 0x0fff);
             chip8_load_index();
             break;
+        case 0xc000:
+            
+            break;
         case 0xd000:
-            bytecode_log("draw 0x%X, 0x%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
+            bytecode_log("draw V%X, V%X", (chip8.opcode & 0x0f00)>>8, (chip8.opcode & 0x00f0)>>4);
             chip8_draw();
             break;
         case 0xe000:
