@@ -3,7 +3,8 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 
-#define bytecode_log(text, ...) snprintf(instruction, 100, text, ##__VA_ARGS__)
+#define INSTRUCTION_SIZE 0xff
+#define bytecode_log(text, ...) snprintf(instruction, INSTRUCTION_SIZE, text, ##__VA_ARGS__)
 
 SDL_Rect rectangle;
 Chip8 chip8;
@@ -95,11 +96,11 @@ void chip8_cycle() {
         case 0x0000:
             switch (get_00xx()) {
                 case 0x00e0:
-                    strncpy(instruction, "cls", 100);
+                    strncpy(instruction, "cls", INSTRUCTION_SIZE);
                     chip8_clear();
                     break;
                 case 0x00ee:
-                    strncpy(instruction, "return", 100);
+                    strncpy(instruction, "return", INSTRUCTION_SIZE);
                     chip8_return();
                     break;
             }
@@ -216,11 +217,11 @@ void chip8_cycle() {
                     chip8_font_character();
                     break;
                 case 0x55:
-                    strncpy(instruction, "reg dump", 100);
+                    strncpy(instruction, "reg dump", INSTRUCTION_SIZE);
                     chip8_reg_dump();
                     break;
                 case 0x65:
-                    strncpy(instruction, "reg load", 100);
+                    strncpy(instruction, "reg load", INSTRUCTION_SIZE);
                     chip8_reg_load();
                     break;
                 case 0x0a:

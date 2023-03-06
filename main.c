@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < numkeys; i++) {
             keyboard_state_last[i] = keyboard_state_current[i];
         }
-        SDL_SetRenderDrawColor(renderer, 0, 0x00, 0, 0);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderClear(renderer);
 
         SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);

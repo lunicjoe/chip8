@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 
-#define PIXEL_SIZE 5
+#define PIXEL_SIZE 10
 #define SCREEN_WIDTH 64
 #define SCREEN_HEIGHT 32
 #define START_ADDRESS 0x200
