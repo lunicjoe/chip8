@@ -8,7 +8,6 @@ int main(int argc, char *argv[]) {
 
     SDL_Window *window;
     SDL_Renderer *renderer;
-    SDL_Surface *surface;
     SDL_Event event;
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -19,7 +18,6 @@ int main(int argc, char *argv[]) {
     const uint8_t *keyboard_state_current = SDL_GetKeyboardState(&numkeys);
     uint8_t *keyboard_state_last = malloc(numkeys);
     while (is_running) {
-        keyboard_state_current = SDL_GetKeyboardState(NULL);
         SDL_PollEvent(&event);
         if (event.type == SDL_QUIT) {
             is_running = false;

@@ -1,5 +1,5 @@
-#ifndef CHIP8_CHIP8_H
-#define CHIP8_CHIP8_H
+#ifndef CHIP8_H
+#define CHIP8_H
 
 #include <stdbool.h>
 #include <SDL2/SDL.h>
@@ -7,6 +7,7 @@
 #define PIXEL_SIZE 5
 #define SCREEN_WIDTH 64
 #define SCREEN_HEIGHT 32
+#define START_ADDRESS 0x200
 
 typedef struct {
     char graphics_memory[SCREEN_WIDTH * SCREEN_HEIGHT];
@@ -15,6 +16,7 @@ typedef struct {
     uint16_t pc;
     uint16_t index;
     uint8_t V[16];
+    uint8_t delay_timer;
     uint8_t sp;
     uint16_t stack[16];
     uint8_t flag;
@@ -40,7 +42,9 @@ void chip8_call();
 void chip8_return();
 void chip8_font_character();
 void chip8_add_v_to_index();
+void chip8_set_delay_timer();
+void chip8_get_delay_timer();
 void chip8_render(SDL_Renderer *renderer);
 void chip8_log();
 
-#endif //CHIP8_CHIP8_H
+#endif //CHIP8_H

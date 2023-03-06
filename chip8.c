@@ -40,7 +40,7 @@ void chip8_init() {
     rectangle.w = PIXEL_SIZE;
     chip8_clear();
     chip8.opcode = 0;
-    chip8.pc = 0x200;
+    chip8.pc = START_ADDRESS;
     chip8.sp = 0;
     for (int i = 0; i < 16; i++) {
         chip8.pressed_key[i] = false;
@@ -48,7 +48,6 @@ void chip8_init() {
     for (int i = 0; i < 5 * 0xf; i++) {
         chip8.memory[0x50 + i] = characters[i];
     }
-    chip8.memory[0x1ff] = 3;
 }
 
 void chip8_load_rom(char *file) {
@@ -60,10 +59,10 @@ void chip8_load_rom(char *file) {
     fread(rom_buffer, sizeof(uint8_t), rom_size, rom);
     fclose(rom);
     for (int i = 0; i < rom_size; i += 2) {
-        chip8.memory[0x200 + i] = rom_buffer[i];
-        chip8.memory[0x200 + i + 1] = rom_buffer[i + 1];
+        chip8.memory[START_ADDRESS + i] = rom_buffer[i];
+        chip8.memory[START_ADDRESS + i + 1] = rom_buffer[i + 1];
     }
-    chip8.memory[0x200 + 0x1ff] = 4;
+    chip8.memory[START_ADDRESS + 0x1ff] = 1;
 }
 
 uint8_t get_0x00() {
@@ -83,6 +82,9 @@ uint16_t get_0xxx() {
 }
 
 void chip8_cycle() {
+    if (chip8.delay_timer > 0) {
+        chip8.delay_timer--;
+    }
     for (int i = 0; i < 16; i++) {
         chip8.pressed_key[i] = SDL_GetKeyboardState(NULL)[keys[i]] == 1;
     }
@@ -103,7 +105,7 @@ void chip8_cycle() {
             }
             break;
         case 0x1000:
-            bytecode_log("jmp 0x%X", chip8.opcode & 0xfff);
+            bytecode_log("jmp 0x%X", get_0xxx());
             chip8_jump();
             break;
         case 0x2000:
@@ -191,12 +193,20 @@ void chip8_cycle() {
                     chip8_v_pressed();
                     break;
                 case 0xa1:
-                    bytecode_log("skip if 0x%X not pressed", get_0x00());
+                    bytecode_log("skip if V%X not pressed", get_0x00());
                     chip8_pressed();
                     break;
             }
         case 0xf000:
             switch (get_00xx()) {
+                case 0x7:
+                    bytecode_log("V%X = delay timer", get_0x00());
+                    chip8_get_delay_timer();
+                    break;
+                case 0x15:
+                    bytecode_log("delay timer = V%X", get_0x00());
+                    chip8_set_delay_timer();
+                    break;
                 case 0x1e:
                     bytecode_log("index += V%X", get_0x00());
                     chip8_add_v_to_index();
@@ -247,13 +257,13 @@ void chip8_load_index() {
 
 void chip8_reg_dump() {
     for (int i = 0; i <= get_0x00(); i++) {
-        chip8.memory[0x200 + chip8.index + i] = chip8.V[i];
+        chip8.memory[START_ADDRESS + chip8.index + i] = chip8.V[i];
     }
 }
 
 void chip8_reg_load() {
     for (int i = 0; i <= get_0x00(); i++) {
-        chip8.V[i] = chip8.memory[0x200 + chip8.index + i];
+        chip8.V[i] = chip8.memory[START_ADDRESS + chip8.index + i];
     }
 }
 
@@ -290,8 +300,6 @@ void chip8_call() {
         chip8.sp++;
         chip8.pc = get_0xxx();
         chip8.pc -= 2;
-    } else {
-        return;
     }
 }
 
@@ -310,6 +318,14 @@ void chip8_add_v_to_index() {
     chip8.index += chip8.V[get_0x00()];
 }
 
+void chip8_set_delay_timer() {
+    chip8.delay_timer = chip8.V[get_0x00()];
+}
+
+void chip8_get_delay_timer() {
+    chip8.V[get_0x00()] = chip8.delay_timer;
+}
+
 void chip8_draw() {
     chip8.flag = 0;
     const uint8_t x_sprite = chip8.V[get_0x00()];
@@ -317,13 +333,14 @@ void chip8_draw() {
     const uint8_t rows = chip8.opcode & 0x000f;
     for (int y = 0; y < rows; y++) {
         for (int x = 0; x < 8; x++) {
-            if (x_sprite + x < 64 && y_sprite + y < 32) {
+            if (x_sprite + x < SCREEN_WIDTH && y_sprite + y < SCREEN_HEIGHT) {
                 if (((chip8.memory[chip8.index + y] >> x) & 1) == 1) {
-                    if (chip8.graphics_memory[(x_sprite + 8 - x) + SCREEN_WIDTH * (y_sprite + y)] == 0) {
-                        chip8.graphics_memory[(x_sprite + 8 - x) + SCREEN_WIDTH * (y_sprite + y)] = 1;
-                    } else {
-                        chip8.graphics_memory[(x_sprite + 8 - x) + SCREEN_WIDTH * (y_sprite + y)] = 0;
+                    const uint16_t pixel = (x_sprite + 8 - x) + SCREEN_WIDTH * (y_sprite + y);
+                    if (chip8.graphics_memory[pixel]) {
+                        chip8.graphics_memory[pixel] = 0;
                         chip8.flag = 1;
+                    } else {
+                        chip8.graphics_memory[pixel] = 1;
                     }
                 }
             }
@@ -335,7 +352,7 @@ void chip8_render(SDL_Renderer *renderer) {
     for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) {
         rectangle.x = pixel % SCREEN_WIDTH * PIXEL_SIZE;
         rectangle.y = (pixel - (pixel % SCREEN_WIDTH)) / SCREEN_WIDTH * PIXEL_SIZE;
-        if (chip8.graphics_memory[pixel] == 1) {
+        if (chip8.graphics_memory[pixel]) {
             SDL_RenderFillRect(renderer, &rectangle);
         }
     }
