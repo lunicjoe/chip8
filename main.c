@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[]) {
     chip8_init();
-    chip8_load_rom("/home/filadelphila/test.ch8");
+    chip8_load_rom(argv[1]);
 
     SDL_Window *window;
     SDL_Renderer *renderer;
@@ -27,17 +27,23 @@ int main(int argc, char *argv[]) {
         if (!keyboard_state_current[SDL_SCANCODE_RETURN] && keyboard_state_last[SDL_SCANCODE_RETURN]) {
             chip8_cycle();
         }
+        if ((!keyboard_state_current[SDL_SCANCODE_P] && keyboard_state_last[SDL_SCANCODE_P])) {
+            chip8_log();
+        }
+        if (keyboard_state_current[SDL_SCANCODE_SPACE]) {
+            chip8_cycle();
+        }
         for (int i = 0; i < numkeys; i++) {
             keyboard_state_last[i] = keyboard_state_current[i];
         }
-
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        SDL_SetRenderDrawColor(renderer, 0, 0x00, 0, 0);
         SDL_RenderClear(renderer);
 
         SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
-        chip8_draw(renderer);
+        chip8_render(renderer);
 
         SDL_RenderPresent(renderer);
+        SDL_Delay(20);
     }
 
     SDL_DestroyRenderer(renderer);
