@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 #include <SDL2/SDL.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define INSTRUCTION_SIZE 0xff
 #define bytecode_log(text, ...) snprintf(instruction, INSTRUCTION_SIZE, text, ##__VA_ARGS__)
@@ -182,6 +184,8 @@ void chip8_cycle() {
             chip8_load_index();
             break;
         case 0xc000:
+            bytecode_log("rand V%X, 0x%02X", get_0x00(), get_00xx());
+            chip8_rand();
             break;
         case 0xd000:
             bytecode_log("draw V%X, V%X", get_0x00(), get_00x0());
@@ -241,7 +245,7 @@ void chip8_clear() {
 }
 
 void chip8_jump() {
-    chip8.pc = (chip8.opcode & 0xfff) - 2;
+    chip8.pc = (chip8.opcode & 0x0fff) - 2;
 }
 
 void chip8_move() {
@@ -254,6 +258,11 @@ void chip8_add() {
 
 void chip8_load_index() {
     chip8.index = get_0xxx();
+}
+
+void chip8_rand() {
+    srand(time(NULL));
+    chip8.V[get_0x00()] = (rand() % 0xff) & get_00xx();
 }
 
 void chip8_reg_dump() {
@@ -336,7 +345,7 @@ void chip8_draw() {
         for (int x = 0; x < 8; x++) {
             if (x_sprite + x < SCREEN_WIDTH && y_sprite + y < SCREEN_HEIGHT) {
                 if (((chip8.memory[chip8.index + y] >> x) & 1) == 1) {
-                    const uint16_t pixel = (x_sprite + 8 - x) + SCREEN_WIDTH * (y_sprite + y);
+                    const uint16_t pixel = (x_sprite + 8 - 1 - x) + SCREEN_WIDTH * (y_sprite + y);
                     if (chip8.graphics_memory[pixel]) {
                         chip8.graphics_memory[pixel] = 0;
                         chip8.flag = 1;

@@ -34,6 +34,7 @@ void chip8_draw();
 void chip8_move();
 void chip8_add();
 void chip8_load_index();
+void chip8_rand();
 void chip8_reg_dump();
 void chip8_reg_load();
 void chip8_get_key();
