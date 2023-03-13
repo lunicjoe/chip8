@@ -1,10 +1,20 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
-#include "chip8.h"
+#include "emulator/chip8.h"
+#include "log.h"
 
 int main(int argc, char *argv[]) {
     chip8_init();
-    chip8_load_rom(argv[1]);
+    for (int arg = 1; arg < argc; arg++) {
+        if (strcmp(argv[arg], "--log") == 0) {
+            logging = true;
+        } else {
+            if (!chip8_load_rom(argv[arg])) {
+                fprintf(stderr, "rom %s not found\n", argv[arg]);
+                return EXIT_FAILURE;
+            }
+        }
+    }
 
     SDL_Window *window;
     SDL_Renderer *renderer;
@@ -19,18 +29,11 @@ int main(int argc, char *argv[]) {
     uint8_t *keyboard_state_last = malloc(numkeys);
     while (is_running) {
         SDL_PollEvent(&event);
-        if (event.type == SDL_QUIT) {
-            is_running = false;
-        }
+        if (event.type == SDL_QUIT) is_running = false;
         if (!keyboard_state_current[SDL_SCANCODE_RETURN] && keyboard_state_last[SDL_SCANCODE_RETURN]) {
             chip8_cycle();
         }
-        if ((!keyboard_state_current[SDL_SCANCODE_P] && keyboard_state_last[SDL_SCANCODE_P])) {
-            chip8_log();
-        }
-        if (keyboard_state_current[SDL_SCANCODE_SPACE]) {
-            chip8_cycle();
-        }
+        if (keyboard_state_current[SDL_SCANCODE_SPACE]) chip8_cycle();
         for (int i = 0; i < numkeys; i++) {
             keyboard_state_last[i] = keyboard_state_current[i];
         }

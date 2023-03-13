@@ -26,13 +26,14 @@ typedef struct {
 extern Chip8 chip8;
 extern SDL_Rect rectangle;
 void chip8_init();
-void chip8_load_rom(char *file);
+int chip8_load_rom(char *file);
 void chip8_cycle();
 void chip8_clear();
 void chip8_jump();
 void chip8_draw();
 void chip8_move();
 void chip8_add();
+void chip8_skip_ne_vx_xy();
 void chip8_load_index();
 void chip8_rand();
 void chip8_reg_dump();
@@ -47,6 +48,5 @@ void chip8_add_v_to_index();
 void chip8_set_delay_timer();
 void chip8_get_delay_timer();
 void chip8_render(SDL_Renderer *renderer);
-void chip8_log();
 
 #endif //CHIP8_H
