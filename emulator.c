@@ -30,9 +30,7 @@ int main(int argc, char *argv[]) {
     while (is_running) {
         SDL_PollEvent(&event);
         if (event.type == SDL_QUIT) is_running = false;
-        if (!keyboard_state_current[SDL_SCANCODE_RETURN] && keyboard_state_last[SDL_SCANCODE_RETURN]) {
-            chip8_cycle();
-        }
+        if (!keyboard_state_current[SDL_SCANCODE_RETURN] && keyboard_state_last[SDL_SCANCODE_RETURN]) chip8_cycle();
         if (keyboard_state_current[SDL_SCANCODE_SPACE]) chip8_cycle();
         for (int i = 0; i < numkeys; i++) {
             keyboard_state_last[i] = keyboard_state_current[i];

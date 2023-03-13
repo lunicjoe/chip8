@@ -80,7 +80,6 @@ uint16_t get_0xxx() {
 }
 
 void chip8_cycle() {
-    uint8_t flag = 0;
     if (chip8.delay_timer > 0) chip8.delay_timer--;
     for (int i = 0; i < 16; i++) {
         chip8.pressed_key[i] = SDL_GetKeyboardState(NULL)[keys[i]] == 1;
@@ -111,21 +110,15 @@ void chip8_cycle() {
             break;
         case 0x3000:
             bytecode_log("se V%X, 0x%X", get_0x00(), get_00xx());
-            if (chip8.V[get_0x00()] == (get_00xx())) {
-                chip8.pc += 2;
-            }
+            if (chip8.V[get_0x00()] == (get_00xx())) chip8.pc += 2;
             break;
         case 0x4000:
             bytecode_log("sne V%X, 0x%X", get_0x00(), get_00xx());
-            if (chip8.V[get_0x00()] != (get_00xx())) {
-                chip8.pc += 2;
-            }
+            if (chip8.V[get_0x00()] != (get_00xx())) chip8.pc += 2;
             break;
         case 0x5000:
             bytecode_log("se V%X, V%X", get_0x00(), get_00x0());
-            if (chip8.V[get_0x00()] == chip8.V[get_00x0()]) {
-                chip8.pc += 2;
-            }
+            if (chip8.V[get_0x00()] == chip8.V[get_00x0()]) chip8.pc += 2;
         case 0x6000:
             bytecode_log("ld V%X, 0x%X", get_0x00(), get_00xx());
             chip8_move();
@@ -154,33 +147,28 @@ void chip8_cycle() {
                     break;
                 case 0x4:
                     bytecode_log("add V%X, V%X", get_0x00(), get_00x0());
-                    flag = chip8.V[get_0x00()] + chip8.V[get_00x0()] > 0xff ? 1: 0;
+                    chip8.V[0xf] = chip8.V[get_0x00()] + chip8.V[get_00x0()] > 0xff ? 1: 0;
                     chip8.V[get_0x00()] += chip8.V[get_00x0()];
-                    chip8.V[0xf] = flag;
                     break;
                 case 0x5:
                     bytecode_log("sub V%X, V%X", get_0x00(), get_00x0());
-                    flag = chip8.V[get_0x00()] -= chip8.V[get_00x0()] < 0 ? 1 : 0;
+                    chip8.V[0xf] = chip8.V[get_0x00()] -= chip8.V[get_00x0()] < 0 ? 1 : 0;
                     chip8.V[get_0x00()] -= chip8.V[get_00x0()];
-                    chip8.V[0xf] = flag;
                     break;
                 case 0x6:
                     bytecode_log("shr V%X", get_0x00());
-                    flag = chip8.V[get_0x00()] & 1;
+                    chip8.V[0xf] = chip8.V[get_0x00()] & 1;
                     chip8.V[get_0x00()] >>= 1;
-                    chip8.V[0xf] = flag;
                     break;
                 case 0x7:
                     bytecode_log("subn V%X, V%X", get_0x00(), get_00x0());
-                    flag = chip8.V[get_00x0()] - chip8.V[get_0x00()] < 0 ? 0 : 1;
+                    chip8.V[0xf] = chip8.V[get_00x0()] - chip8.V[get_0x00()] < 0 ? 0 : 1;
                     chip8.V[get_0x00()] = chip8.V[get_00x0()] - chip8.V[get_0x00()];
-                    chip8.V[0xf] = flag;
                     break;
                 case 0xe:
                     bytecode_log("shl V%X <<= 1", get_0x00());
-                    flag = chip8.V[get_0x00()] <<= 1 > 0xff ? 1 : 0;
+                    chip8.V[0xf] = chip8.V[get_0x00()] & 0x8000;
                     chip8.V[get_0x00()] <<= 1;
-                    chip8.V[0xf] = flag;
                     break;
             }
             break;
@@ -233,6 +221,10 @@ void chip8_cycle() {
                     bytecode_log("ld I, FONT(V%X)", get_0x00());
                     chip8_font_character();
                     break;
+                case 0x33:
+                    bytecode_log("BCD V%X", get_0x00());
+                    chip8_bcd();
+                    break;
                 case 0x55:
                     bytecode_log("registers dump");
                     chip8_reg_dump();
@@ -254,7 +246,7 @@ void chip8_clear() {
 }
 
 void chip8_jump() {
-    chip8.pc = (chip8.opcode & 0x0fff) - 2;
+    chip8.pc = get_0xxx() - 2;
 }
 
 void chip8_move() {
@@ -333,6 +325,14 @@ void chip8_return() {
 
 void chip8_font_character() {
     chip8.index = FONT_ADDRESS + chip8.V[get_0x00()] * 5;
+}
+
+void chip8_bcd() {
+    int number = chip8.V[get_0x00()];
+    for (int i = 0; i < 3; i++) {
+        chip8.memory[chip8.index + 2 - i] = number % 10;
+        number /= 10;
+    }
 }
 
 void chip8_add_v_to_index() {
