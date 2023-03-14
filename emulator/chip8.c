@@ -35,6 +35,19 @@ uint8_t font[] = {
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
+uint8_t get_0x00() {
+    return (chip8.opcode & 0x0f00) >> 8;
+}
+uint8_t get_00x0() {
+    return (chip8.opcode & 0x00f0) >> 4;
+}
+uint8_t get_00xx() {
+    return chip8.opcode & 0x00ff;
+}
+uint16_t get_0xxx() {
+    return chip8.opcode & 0x0fff;
+}
+
 void chip8_init() {
     srand(time(NULL));
     cycles = malloc(sizeof(Chip8) * CYCLES_BUFFER);
@@ -69,29 +82,6 @@ int chip8_load_rom(char *file) {
     return 1;
 }
 
-uint8_t get_0x00() {
-    return (chip8.opcode & 0x0f00) >> 8;
-}
-
-uint8_t get_00x0() {
-    return (chip8.opcode & 0x00f0) >> 4;
-}
-
-uint8_t get_00xx() {
-    return chip8.opcode & 0x00ff;
-}
-
-uint16_t get_0xxx() {
-    return chip8.opcode & 0x0fff;
-}
-
-void chip8_backward() {
-    if (cycle > 0) {
-        cycle--;
-        memcpy(&chip8, &cycles[cycle], sizeof(Chip8));
-    }
-}
-
 void chip8_cycle() {
     memcpy(&cycles[cycle], &chip8, sizeof(Chip8));
     cycle++;
@@ -119,7 +109,7 @@ void chip8_cycle() {
             break;
         case 0x1000:
             bytecode_log("jmp 0x%X", get_0xxx());
-            chip8_jump();
+            chip8.pc = get_0xxx() - 2;
             break;
         case 0x2000:
             bytecode_log("call 0x%X", get_0xxx());
@@ -138,7 +128,7 @@ void chip8_cycle() {
             if (chip8.V[get_0x00()] == chip8.V[get_00x0()]) chip8.pc += 2;
         case 0x6000:
             bytecode_log("ld V%X, 0x%X", get_0x00(), get_00xx());
-            chip8_move();
+            chip8.V[get_0x00()] = get_00xx();
             break;
         case 0x7000:
             bytecode_log("add V%X, 0x%X", get_0x00(), get_00xx());
@@ -191,15 +181,15 @@ void chip8_cycle() {
             break;
         case 0x9000:
             bytecode_log("sne V%X, V%X", get_0x00(), get_00x0());
-            chip8_skip_ne_vx_xy();
+            if (chip8.V[get_0x00()] != chip8.V[get_00x0()]) chip8.pc += 2;
             break;
         case 0xa000:
             bytecode_log("ld I, 0x%X", get_0xxx());
-            chip8_load_index();
+            chip8.index = get_0xxx();
             break;
         case 0xc000:
             bytecode_log("rnd V%X, 0x%02X", get_0x00(), get_00xx());
-            chip8_rand();
+            chip8.V[get_0x00()] = (rand() % 0xff) & get_00xx();
             break;
         case 0xd000:
             bytecode_log("drw V%X, V%X, 0x%02X", get_0x00(), get_00x0(), chip8.opcode & 0xf);
@@ -209,18 +199,18 @@ void chip8_cycle() {
             switch (get_00xx()) {
                 case 0x9e:
                     bytecode_log("skp V%X", get_0x00());
-                    chip8_v_pressed();
+                    if (chip8.pressed_key[chip8.V[get_0x00()]]) chip8.pc += 2;
                     break;
                 case 0xa1:
                     bytecode_log("sknp V%X", get_0x00());
-                    chip8_pressed();
+                    if (!chip8.pressed_key[chip8.V[get_0x00()]]) chip8.pc += 2;
                     break;
             }
         case 0xf000:
             switch (get_00xx()) {
                 case 0x7:
                     bytecode_log("ld V%X, DT", get_0x00());
-                    chip8_get_delay_timer();
+                    chip8.V[get_0x00()] = chip8.delay_timer;
                     break;
                 case 0x0a:
                     bytecode_log("ld V%X, KEY", get_0x00());
@@ -228,15 +218,15 @@ void chip8_cycle() {
                     break;
                 case 0x15:
                     bytecode_log("ld DT, V%X", get_0x00());
-                    chip8_set_delay_timer();
+                    chip8.delay_timer = chip8.V[get_0x00()];
                     break;
                 case 0x1e:
                     bytecode_log("add I, V%X", get_0x00());
-                    chip8_add_v_to_index();
+                    chip8.index += chip8.V[get_0x00()];
                     break;
                 case 0x29:
                     bytecode_log("ld I, FONT(V%X)", get_0x00());
-                    chip8_font_character();
+                    chip8.index = FONT_ADDRESS + chip8.V[get_0x00()] * 5;
                     break;
                 case 0x33:
                     bytecode_log("BCD V%X", get_0x00());
@@ -256,71 +246,35 @@ void chip8_cycle() {
     chip8.pc += 2;
 }
 
+void chip8_backward() {
+    if (cycle > 0) {
+        cycle--;
+        memcpy(&chip8, &cycles[cycle], sizeof(Chip8));
+    }
+}
+
+void chip8_render(SDL_Renderer *renderer) {
+    for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) {
+        rectangle.x = pixel % SCREEN_WIDTH * PIXEL_SIZE;
+        rectangle.y = (pixel - (pixel % SCREEN_WIDTH)) / SCREEN_WIDTH * PIXEL_SIZE;
+        if (chip8.graphics_memory[pixel]) SDL_RenderFillRect(renderer, &rectangle);
+        SDL_SetRenderDrawColor(renderer, 0x33, 0x33, 0x33, 0);
+        SDL_RenderDrawRect(renderer, &rectangle);
+        SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0);
+    }
+}
+// instructions
 void chip8_clear() {
     for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) {
         chip8.graphics_memory[pixel] = 0;
     }
 }
 
-void chip8_jump() {
-    chip8.pc = get_0xxx() - 2;
-}
-
-void chip8_move() {
-    chip8.V[get_0x00()] = get_00xx();
-}
-
-void chip8_add() {
-    uint8_t flag = chip8.V[get_0x00()] + get_00xx() > 0xff ? 1 : 0;
-    chip8.V[get_0x00()] += get_00xx();
-    chip8.V[0xf] = flag;
-}
-
-void chip8_skip_ne_vx_xy() {
-    if (chip8.V[get_0x00()] != chip8.V[get_00x0()]) chip8.pc += 2;
-}
-
-void chip8_load_index() {
-    chip8.index = get_0xxx();
-}
-
-void chip8_rand() {
-    chip8.V[get_0x00()] = (rand() % 0xff) & get_00xx();
-}
-
-void chip8_reg_dump() {
-    for (int i = 0; i <= get_0x00(); i++) {
-        chip8.memory[START_ADDRESS + chip8.index + i] = chip8.V[i];
-    }
-}
-
-void chip8_reg_load() {
-    for (int i = 0; i <= get_0x00(); i++) {
-        chip8.V[i] = chip8.memory[chip8.index + i];
-    }
-}
-
-void chip8_get_key() {
-    int pressed = -1;
-    for (int key = 0; key < 16; key++) {
-        if (chip8.pressed_key[key]) {
-            pressed = key;
-            break;
-        }
-    }
-    if (pressed >= 0) {
-        chip8.V[get_0x00()] = pressed;
-    } else {
-        chip8.pc -= 2;
-    }
-}
-
-void chip8_v_pressed() {
-    if (chip8.pressed_key[chip8.V[get_0x00()]]) chip8.pc += 2;
-}
-
-void chip8_pressed() {
-    if (!chip8.pressed_key[chip8.V[get_0x00()]]) chip8.pc += 2;
+void chip8_return() {
+    chip8.sp--;
+    chip8.pc = chip8.stack[chip8.sp];
+    chip8.pc -= 2;
+    chip8.stack[chip8.sp] = 0;
 }
 
 void chip8_call() {
@@ -332,35 +286,10 @@ void chip8_call() {
     }
 }
 
-void chip8_return() {
-    chip8.sp--;
-    chip8.pc = chip8.stack[chip8.sp];
-    chip8.pc -= 2;
-    chip8.stack[chip8.sp] = 0;
-}
-
-void chip8_font_character() {
-    chip8.index = FONT_ADDRESS + chip8.V[get_0x00()] * 5;
-}
-
-void chip8_bcd() {
-    int number = chip8.V[get_0x00()];
-    for (int i = 0; i < 3; i++) {
-        chip8.memory[chip8.index + 2 - i] = number % 10;
-        number /= 10;
-    }
-}
-
-void chip8_add_v_to_index() {
-    chip8.index += chip8.V[get_0x00()];
-}
-
-void chip8_set_delay_timer() {
-    chip8.delay_timer = chip8.V[get_0x00()];
-}
-
-void chip8_get_delay_timer() {
-    chip8.V[get_0x00()] = chip8.delay_timer;
+void chip8_add() {
+    uint8_t flag = chip8.V[get_0x00()] + get_00xx() > 0xff ? 1 : 0;
+    chip8.V[get_0x00()] += get_00xx();
+    chip8.V[0xf] = flag;
 }
 
 void chip8_draw() {
@@ -381,13 +310,37 @@ void chip8_draw() {
     }
 }
 
-void chip8_render(SDL_Renderer *renderer) {
-    for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) {
-        rectangle.x = pixel % SCREEN_WIDTH * PIXEL_SIZE;
-        rectangle.y = (pixel - (pixel % SCREEN_WIDTH)) / SCREEN_WIDTH * PIXEL_SIZE;
-        if (chip8.graphics_memory[pixel]) SDL_RenderFillRect(renderer, &rectangle);
-        SDL_SetRenderDrawColor(renderer, 0x33, 0x33, 0x33, 0);
-        SDL_RenderDrawRect(renderer, &rectangle);
-        SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0);
+void chip8_get_key() {
+    int pressed = -1;
+    for (int key = 0; key < 16; key++) {
+        if (chip8.pressed_key[key]) {
+            pressed = key;
+            break;
+        }
+    }
+    if (pressed >= 0) {
+        chip8.V[get_0x00()] = pressed;
+    } else {
+        chip8.pc -= 2;
+    }
+}
+
+void chip8_bcd() {
+    int number = chip8.V[get_0x00()];
+    for (int i = 0; i < 3; i++) {
+        chip8.memory[chip8.index + 2 - i] = number % 10;
+        number /= 10;
+    }
+}
+
+void chip8_reg_dump() {
+    for (int i = 0; i <= get_0x00(); i++) {
+        chip8.memory[START_ADDRESS + chip8.index + i] = chip8.V[i];
+    }
+}
+
+void chip8_reg_load() {
+    for (int i = 0; i <= get_0x00(); i++) {
+        chip8.V[i] = chip8.memory[chip8.index + i];
     }
 }
