@@ -25,13 +25,12 @@ int main(int argc, char *argv[]) {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(SCREEN_WIDTH * PIXEL_SIZE, SCREEN_HEIGHT * PIXEL_SIZE, SDL_WINDOW_RESIZABLE, &window, &renderer);
 
-    bool is_running = true;
     int numkeys;
     const uint8_t *keyboard_state_current = SDL_GetKeyboardState(&numkeys);
     uint8_t *keyboard_state_last = malloc(numkeys);
-    while (is_running) {
+    while (true) {
         SDL_PollEvent(&event);
-        if (event.type == SDL_QUIT) is_running = false;
+        if (event.type == SDL_QUIT) break;
         if (debug) {
             if (keyboard_state_current[SDL_SCANCODE_SPACE]) {
                 if (keyboard_state_current[SDL_SCANCODE_RIGHT]) chip8_cycle();
@@ -51,10 +50,6 @@ int main(int argc, char *argv[]) {
 
         SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
         chip8_render(renderer);
-
-        SDL_SetRenderDrawColor(renderer, 0x33, 0x33, 0x33, 0);
-        SDL_RenderDrawRect(renderer, &rectangle);
-        SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0);
 
         SDL_RenderPresent(renderer);
         SDL_Delay(20);

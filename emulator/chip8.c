@@ -6,7 +6,7 @@
 #include <time.h>
 #include "../log.h"
 
-#define MALLOC_BLOCK 10
+#define CYCLES_BUFFER 10
 
 SDL_Rect rectangle;
 Chip8 chip8;
@@ -37,7 +37,7 @@ uint8_t font[] = {
 
 void chip8_init() {
     srand(time(NULL));
-    cycles = malloc(sizeof(Chip8) * MALLOC_BLOCK);
+    cycles = malloc(sizeof(Chip8) * CYCLES_BUFFER);
     SDL_RectEmpty(&rectangle);
     rectangle.h = PIXEL_SIZE;
     rectangle.w = PIXEL_SIZE;
@@ -95,7 +95,7 @@ void chip8_backward() {
 void chip8_cycle() {
     memcpy(&cycles[cycle], &chip8, sizeof(Chip8));
     cycle++;
-    if (cycle % MALLOC_BLOCK == 0) cycles = realloc(cycles, sizeof(Chip8) * MALLOC_BLOCK * ((int)(cycle / MALLOC_BLOCK) + 1));
+    if (cycle % CYCLES_BUFFER == 0) cycles = realloc(cycles, sizeof(Chip8) * CYCLES_BUFFER * ((int)(cycle / CYCLES_BUFFER) + 1));
 
     if (chip8.delay_timer > 0) chip8.delay_timer--;
     for (int i = 0; i < 16; i++) {
@@ -386,5 +386,8 @@ void chip8_render(SDL_Renderer *renderer) {
         rectangle.x = pixel % SCREEN_WIDTH * PIXEL_SIZE;
         rectangle.y = (pixel - (pixel % SCREEN_WIDTH)) / SCREEN_WIDTH * PIXEL_SIZE;
         if (chip8.graphics_memory[pixel]) SDL_RenderFillRect(renderer, &rectangle);
+        SDL_SetRenderDrawColor(renderer, 0x33, 0x33, 0x33, 0);
+        SDL_RenderDrawRect(renderer, &rectangle);
+        SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0);
     }
 }
