@@ -1,7 +1,3 @@
-//
-// Created by filadelphila on 7/03/23.
-//
-
 #ifndef CHIP8_LOG_H
 #define CHIP8_LOG_H
 

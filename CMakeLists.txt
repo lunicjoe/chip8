@@ -8,5 +8,6 @@ include_directories(${SDL2_INCLUDE_DIRS})
 
 add_executable(emulator emulator.c emulator/chip8.h emulator/chip8.c log.h log.c)
 add_executable(log_reader log_reader.c)
+add_executable(disassembler disassembler.c)
 
 target_link_libraries(emulator ${SDL2_LIBRARIES})
