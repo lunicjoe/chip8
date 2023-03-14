@@ -27,6 +27,7 @@ extern Chip8 chip8;
 extern SDL_Rect rectangle;
 void chip8_init();
 int chip8_load_rom(char *file);
+void chip8_backward();
 void chip8_cycle();
 void chip8_clear();
 void chip8_jump();

@@ -6,9 +6,13 @@
 #include <time.h>
 #include "../log.h"
 
+#define MALLOC_BLOCK 10
 
 SDL_Rect rectangle;
 Chip8 chip8;
+
+int cycle;
+Chip8 *cycles;
 
 int keys[] = {27, 30, 31, 32, 20, 26, 8, 4, 22, 7, 29, 6, 33, 21, 9, 25};
 
@@ -32,6 +36,8 @@ uint8_t font[] = {
 };
 
 void chip8_init() {
+    srand(time(NULL));
+    cycles = malloc(sizeof(Chip8) * MALLOC_BLOCK);
     SDL_RectEmpty(&rectangle);
     rectangle.h = PIXEL_SIZE;
     rectangle.w = PIXEL_SIZE;
@@ -79,7 +85,18 @@ uint16_t get_0xxx() {
     return chip8.opcode & 0x0fff;
 }
 
+void chip8_backward() {
+    if (cycle > 0) {
+        cycle--;
+        memcpy(&chip8, &cycles[cycle], sizeof(Chip8));
+    }
+}
+
 void chip8_cycle() {
+    memcpy(&cycles[cycle], &chip8, sizeof(Chip8));
+    cycle++;
+    if (cycle % MALLOC_BLOCK == 0) cycles = realloc(cycles, sizeof(Chip8) * MALLOC_BLOCK * ((int)(cycle / MALLOC_BLOCK) + 1));
+
     if (chip8.delay_timer > 0) chip8.delay_timer--;
     for (int i = 0; i < 16; i++) {
         chip8.pressed_key[i] = SDL_GetKeyboardState(NULL)[keys[i]] == 1;
@@ -268,7 +285,6 @@ void chip8_load_index() {
 }
 
 void chip8_rand() {
-    srand(time(NULL));
     chip8.V[get_0x00()] = (rand() % 0xff) & get_00xx();
 }
 
@@ -348,21 +364,17 @@ void chip8_get_delay_timer() {
 }
 
 void chip8_draw() {
-    chip8.flag = 0;
     const uint8_t x_sprite = chip8.V[get_0x00()];
     const uint8_t y_sprite = chip8.V[get_00x0()];
     const uint8_t rows = chip8.opcode & 0x000f;
     for (int y = 0; y < rows; y++) {
+        uint8_t sprite_row = chip8.memory[chip8.index + y];
         for (int x = 0; x < 8; x++) {
             if ((x_sprite + x < SCREEN_WIDTH) && (y_sprite + y < SCREEN_HEIGHT)) {
-                if ((chip8.memory[chip8.index + y] >> x) & 1) {
-                    const uint16_t pixel = (x_sprite + 8 - 1 - x) + SCREEN_WIDTH * (y_sprite + y);
-                    if (chip8.graphics_memory[pixel]) {
-                        chip8.graphics_memory[pixel] = 0;
-                        chip8.flag = 1;
-                    } else {
-                        chip8.graphics_memory[pixel] = 1;
-                    }
+                if ((sprite_row & (0x80 >> x)) != 0) {
+                    const uint16_t pixel = (x_sprite + x) + SCREEN_WIDTH * (y_sprite + y);
+                    chip8.V[0xf] = chip8.graphics_memory[pixel] ? 1 : 0;
+                    chip8.graphics_memory[pixel] ^= 1;
                 }
             }
         }

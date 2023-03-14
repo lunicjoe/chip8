@@ -3,16 +3,18 @@
 #include "emulator/chip8.h"
 #include "log.h"
 
+bool debug = false;
+
 int main(int argc, char *argv[]) {
     chip8_init();
     for (int arg = 1; arg < argc; arg++) {
         if (strcmp(argv[arg], "--log") == 0) {
             logging = true;
-        } else {
-            if (!chip8_load_rom(argv[arg])) {
-                fprintf(stderr, "rom %s not found\n", argv[arg]);
-                return EXIT_FAILURE;
-            }
+        } else if (strcmp(argv[arg], "--debug") == 0) {
+            debug = true;
+        } else if (!chip8_load_rom(argv[arg])) {
+            fprintf(stderr, "rom %s not found\n", argv[arg]);
+            return EXIT_FAILURE;
         }
     }
 
@@ -30,8 +32,17 @@ int main(int argc, char *argv[]) {
     while (is_running) {
         SDL_PollEvent(&event);
         if (event.type == SDL_QUIT) is_running = false;
-        if (!keyboard_state_current[SDL_SCANCODE_RETURN] && keyboard_state_last[SDL_SCANCODE_RETURN]) chip8_cycle();
-        if (keyboard_state_current[SDL_SCANCODE_SPACE]) chip8_cycle();
+        if (debug) {
+            if (keyboard_state_current[SDL_SCANCODE_SPACE]) {
+                if (keyboard_state_current[SDL_SCANCODE_RIGHT]) chip8_cycle();
+                if (keyboard_state_current[SDL_SCANCODE_LEFT]) chip8_backward();
+            } else {
+                if (!keyboard_state_current[SDL_SCANCODE_RIGHT] && keyboard_state_last[SDL_SCANCODE_RIGHT]) chip8_cycle();
+                if (!keyboard_state_current[SDL_SCANCODE_LEFT] && keyboard_state_last[SDL_SCANCODE_LEFT]) chip8_backward();
+            }
+        } else {
+            chip8_cycle();
+        }
         for (int i = 0; i < numkeys; i++) {
             keyboard_state_last[i] = keyboard_state_current[i];
         }
@@ -40,6 +51,10 @@ int main(int argc, char *argv[]) {
 
         SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0xff);
         chip8_render(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 0x33, 0x33, 0x33, 0);
+        SDL_RenderDrawRect(renderer, &rectangle);
+        SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0);
 
         SDL_RenderPresent(renderer);
         SDL_Delay(20);
