@@ -54,7 +54,6 @@ void chip8_init() {
     SDL_RectEmpty(&rectangle);
     rectangle.h = PIXEL_SIZE;
     rectangle.w = PIXEL_SIZE;
-    chip8_clear();
     chip8.opcode = 0;
     chip8.pc = START_ADDRESS;
     chip8.sp = 0;
@@ -81,7 +80,8 @@ int chip8_load_rom(char *file) {
     }
     return 1;
 }
-void (*chip_instructions[16])();
+
+void (*cpu_instructions[16])();
 void chip8_cycle() {
     memcpy(&cycles[cycle], &chip8, sizeof(Chip8));
     cycle++;
@@ -94,7 +94,7 @@ void chip8_cycle() {
     uint16_t instruction_address = chip8.pc;
     chip8.opcode = (chip8.memory[chip8.pc] << 8) | chip8.memory[chip8.pc + 1];
 
-    chip_instructions[(chip8.opcode & 0xf000) >> 12]();
+    cpu_instructions[(chip8.opcode & 0xf000) >> 12]();
     chip8_log(&chip8, instruction_address, instruction);
     chip8.pc += 2;
 }
@@ -116,13 +116,13 @@ void chip8_render(SDL_Renderer *renderer) {
         SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0);
     }
 }
-void chip8_clear() {
-    for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) chip8.graphics_memory[pixel] = 0;
-}
+
 void cpu_cls_ret() {
     if (get_00xx() == 0xe0) {
         bytecode_log("cls");
-        chip8_clear();
+        for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) {
+            chip8.graphics_memory[pixel] = 0;
+        }
     } else if (get_00xx() == 0xee) {
         bytecode_log("ret");
         chip8.sp--;
@@ -142,36 +142,36 @@ void cpu_call() {
         chip8.pc = get_0xxx() - 2;
     }
 }
-void cpu_3() {
+void cpu_se_Vx_byte() {
     bytecode_log("se V%X, 0x%X", get_0x00(), get_00xx());
     if (chip8.V[get_0x00()] == get_00xx()) chip8.pc += 2;
 }
-void cpu_4() {
+void cpu_sne_Vx_byte() {
     bytecode_log("sne V%X, 0x%X", get_0x00(), get_00xx());
     if (chip8.V[get_0x00()] != get_00xx()) chip8.pc += 2;
 }
-void cpu_5() {
+void cpu_se_Vx_Vx() {
     bytecode_log("se V%X, V%X", get_0x00(), get_00x0());
     if (chip8.V[get_0x00()] == chip8.V[get_00x0()]) chip8.pc += 2;
 }
-void cpu_6() {
+void cpu_load_Vx_byte() {
     bytecode_log("ld V%X, 0x%X", get_0x00(), get_00xx());
     chip8.V[get_0x00()] = get_00xx();
 }
-void cpu_add() {
+void cpu_add_Vx_byte() {
     bytecode_log("add V%X, 0x%X", get_0x00(), get_00xx());
     chip8.V[0xf] = chip8.V[get_0x00()] + get_00xx() > 0xff ? 1 : 0;
     chip8.V[get_0x00()] += get_00xx();
 }
-void (*chip_arithmetic[])();
+void (*cpu_arithmetics[])();
 void cpu_arithmetic() {
-    if (chip_arithmetic[chip8.opcode & 0xf] != NULL) chip_arithmetic[chip8.opcode & 0xf]();
+    if (cpu_arithmetics[chip8.opcode & 0xf] != NULL) cpu_arithmetics[chip8.opcode & 0xf]();
 }
-void cpu_9() {
+void cpu_sne_Vx_Vx() {
     bytecode_log("sne V%X, V%X", get_0x00(), get_00x0());
     if (chip8.V[get_0x00()] != chip8.V[get_00x0()]) chip8.pc += 2;
 }
-void cpu_a() {
+void cpu_load_index_byte() {
     bytecode_log("ld I, 0x%X", get_0xxx());
     chip8.index = get_0xxx();
 }
@@ -197,7 +197,7 @@ void cpu_draw() {
         }
     }
 }
-void cpu_e() {
+void cpu_skp_sknp() {
     if (get_00xx() == 0x9e) {
         bytecode_log("skp V%X", get_0x00());
         if (chip8.pressed_key[chip8.V[get_0x00()]]) chip8.pc += 2;
@@ -257,53 +257,55 @@ void cpu_f() {
     }
 }
 
-void cpu_arithmetic_0() {
+void cpu_load_Vx_Vx() {
     bytecode_log("ld V%X, V%X", get_0x00(), get_00x0());
     chip8.V[get_0x00()] = chip8.V[get_00x0()];
 }
-void cpu_arithmetic_1() {
+void cpu_or() {
     bytecode_log("or V%X, V%X", get_0x00(), get_00x0());
     chip8.V[get_0x00()] |= chip8.V[get_00x0()];
 }
-void cpu_arithmetic_2() {
+void cpu_and() {
     bytecode_log("and V%X, V%X", get_0x00(), get_00x0());
     chip8.V[get_0x00()] &= chip8.V[get_00x0()];
 
 }
-void cpu_arithmetic_3() {
+void cpu_xor() {
     bytecode_log("xor V%X, V%X", get_0x00(), get_00x0());
     chip8.V[get_0x00()] ^= chip8.V[get_00x0()];
 }
-void cpu_arithmetic_4() {
+void cpu_add() {
     bytecode_log("add V%X, V%X", get_0x00(), get_00x0());
     chip8.V[0xf] = chip8.V[get_0x00()] + chip8.V[get_00x0()] > 0xff ? 1: 0;
     chip8.V[get_0x00()] += chip8.V[get_00x0()];
 }
-void cpu_arithmetic_5() {
+void cpu_sub() {
     bytecode_log("sub V%X, V%X", get_0x00(), get_00x0());
     chip8.V[0xf] = chip8.V[get_0x00()] -= chip8.V[get_00x0()] < 0 ? 1 : 0;
     chip8.V[get_0x00()] -= chip8.V[get_00x0()];
 }
-void cpu_arithmetic_6() {
+void cpu_shr() {
     bytecode_log("shr V%X", get_0x00());
     chip8.V[0xf] = chip8.V[get_0x00()] & 1;
     chip8.V[get_0x00()] >>= 1;
 }
-void cpu_arithmetic_7() {
+void cpu_subn() {
     bytecode_log("subn V%X, V%X", get_0x00(), get_00x0());
     chip8.V[0xf] = chip8.V[get_00x0()] - chip8.V[get_0x00()] < 0 ? 0 : 1;
     chip8.V[get_0x00()] = chip8.V[get_00x0()] - chip8.V[get_0x00()];
 }
-void cpu_arithmetic_e() {
-    bytecode_log("shl V%X <<= 1", get_0x00());
+void cpu_shl() {
+    bytecode_log("shl V%X", get_0x00());
     chip8.V[0xf] = chip8.V[get_0x00()] & 0x8000;
     chip8.V[get_0x00()] <<= 1;
 }
 
-void (*chip_instructions[16])() = {
-        &cpu_cls_ret, &cpu_jump, &cpu_call, &cpu_3, &cpu_4, &cpu_5, &cpu_6, &cpu_add, &cpu_arithmetic, &cpu_9, &cpu_a, NULL, &cpu_rand, &cpu_draw, &cpu_e, &cpu_f
+void (*cpu_instructions[16])() = {
+        &cpu_cls_ret, &cpu_jump, &cpu_call, &cpu_se_Vx_byte, &cpu_sne_Vx_byte, &cpu_se_Vx_Vx, &cpu_load_Vx_byte,
+        &cpu_add_Vx_byte, &cpu_arithmetic,
+        &cpu_sne_Vx_Vx, &cpu_load_index_byte, NULL, &cpu_rand, &cpu_draw, &cpu_skp_sknp, &cpu_f
 };
-void (*chip_arithmetic[])() = {
-        &cpu_arithmetic_0, &cpu_arithmetic_1, &cpu_arithmetic_2, &cpu_arithmetic_3, &cpu_arithmetic_4, &cpu_arithmetic_5,
-        &cpu_arithmetic_6, &cpu_arithmetic_7, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &cpu_arithmetic_e,
+void (*cpu_arithmetics[])() = {
+        &cpu_load_Vx_Vx, &cpu_or, &cpu_and, &cpu_xor, &cpu_add, &cpu_sub,
+        &cpu_shr, &cpu_subn, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &cpu_shl,
 };

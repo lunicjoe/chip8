@@ -31,15 +31,5 @@ int chip8_load_rom(char *file);
 void chip8_cycle();
 void chip8_backward();
 void chip8_render(SDL_Renderer *renderer);
-// instructions
-void chip8_clear();
-void chip8_return();
-void chip8_call();
-void chip8_add();
-void chip8_draw();
-void chip8_get_key();
-void chip8_bcd();
-void chip8_reg_dump();
-void chip8_reg_load();
 
 #endif //CHIP8_H
