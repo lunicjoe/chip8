@@ -49,17 +49,21 @@ void chip8_logging(Chip8 *chip8) {
         box(w_instructions, 0, 0);
         box(w_registers, 0, 0);
         box(w_stack, 0, 0);
+
         mvwprintw(w_registers, 0, 1, "registers");
         for (int i = 0; i < 16; i++) {
             if (i < (LINES - 2)) mvwprintw(w_registers, i + 1, 1, "V%X: 0x%02X", i, chip8->V[i]);
         }
         mvwprintw(w_registers, 1, (int)(w_registers->_maxx - 10), "PC: 0x%02X", chip8->pc);
         mvwprintw(w_registers, 2, (int)(w_registers->_maxx - 10), "I: 0x%02X", chip8->index);
+        mvwprintw(w_registers, 3, (int)(w_registers->_maxx - 10), "DT: 0x%X", chip8->delay_timer);
+
         mvwprintw(w_stack, 0, 1, "stack");
         mvwprintw(w_stack, 1, 1, "SP: 0x%X", chip8->sp);
         for (int i = 0; i < chip8->sp; i++) {
             mvwprintw(w_stack, i + 1, 10, "stack[0x%X]:0x%02X", i, chip8->stack[i]);
         }
+
         char *instruction;
         mvwprintw(w_instructions, 0, 3, "addr");
         mvwprintw(w_instructions, 0, 8, "opcode");

@@ -2,15 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "emulator/chip8.h"
-/*
-uint16_t _opcode;
-char* get_chasm_file(char rom[]) {
-    char *chasm_file = malloc(strlen(rom) + 10);
-    strcpy(chasm_file, rom);
-    strtok(chasm_file, ".");
-    strcat(chasm_file, ".chasm");
-    return chasm_file;
-}
 
 uint8_t* get_rom(FILE *rom_file, long *rom_size) {
     fseek(rom_file, 0, SEEK_END);
@@ -21,14 +12,14 @@ uint8_t* get_rom(FILE *rom_file, long *rom_size) {
     fclose(rom_file);
     return rom;
 }
-*/
+
 #define set_instruction(text, ...) { \
     size_t size = snprintf(NULL, 0, text, ##__VA_ARGS__) + 1; \
     instruction = realloc(instruction, size); \
     snprintf(instruction, size, text, ##__VA_ARGS__); \
 }
 
-char *get_asm_code(u_int16_t _opcode) {
+char* get_asm_code(u_int16_t _opcode) {
     char *instruction = malloc(1);
     instruction[0] = '\0';
     switch (_opcode & 0xf000) {
@@ -151,32 +142,3 @@ char *get_asm_code(u_int16_t _opcode) {
     }
     return instruction;
 }
-/*
-int main(int argc, char *argv[]) {
-    instruction = malloc(1);
-    instruction[0] = '\0';
-    FILE *chasm_file;
-    char *chasm_path = get_chasm_file(argv[1]);
-    chasm_file = fopen(chasm_path, "w");
-    free(chasm_path);
-
-    FILE *rom_file = fopen(argv[1], "rb");
-    if (rom_file == NULL) {
-        fprintf(stderr, "%s not found\n", argv[1]);
-        return EXIT_FAILURE;
-    }
-
-    long rom_size;
-    uint8_t *rom = get_rom(rom_file, &rom_size);
-    for (int i = 0; i < rom_size; i += 2) {
-        if (i + 1 < rom_size) {
-            opcode = (rom[i] << 8) | rom[i + 1];
-            instruction = get_asm_code();
-            fprintf(chasm_file, "%s\n", instruction);
-        }
-    }
-    free(rom);
-
-    return EXIT_SUCCESS;
-}
- */
