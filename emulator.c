@@ -4,7 +4,7 @@
 #include "log.h"
 
 bool debug = false;
-
+void disassemble(char *file);
 int main(int argc, char *argv[]) {
     chip8_init();
     for (int arg = 1; arg < argc; arg++) {
@@ -12,6 +12,9 @@ int main(int argc, char *argv[]) {
             logging = true;
         } else if (strcmp(argv[arg], "--debug") == 0) {
             debug = true;
+        } else if ((strcmp(argv[arg], "--disassemble") == 0) && (arg + 1) < argc) {
+            printf("%d %d disassemble to [%s]\n", arg, argc, argv[arg + 1]);
+            continue;
         } else if (!chip8_load_rom(argv[arg])) {
             fprintf(stderr, "rom %s not found\n", argv[arg]);
             return EXIT_FAILURE;
@@ -33,15 +36,16 @@ int main(int argc, char *argv[]) {
         if (event.type == SDL_QUIT) break;
         if (debug) {
             if (keyboard_state_current[SDL_SCANCODE_SPACE]) {
-                if (keyboard_state_current[SDL_SCANCODE_RIGHT]) chip8_cycle();
+                if (keyboard_state_current[SDL_SCANCODE_RIGHT]) chip8_forward();
                 if (keyboard_state_current[SDL_SCANCODE_LEFT]) chip8_backward();
             } else {
-                if (!keyboard_state_current[SDL_SCANCODE_RIGHT] && keyboard_state_last[SDL_SCANCODE_RIGHT]) chip8_cycle();
+                if (!keyboard_state_current[SDL_SCANCODE_RIGHT] && keyboard_state_last[SDL_SCANCODE_RIGHT]) chip8_forward();
                 if (!keyboard_state_current[SDL_SCANCODE_LEFT] && keyboard_state_last[SDL_SCANCODE_LEFT]) chip8_backward();
             }
         } else {
-            chip8_cycle();
+            chip8_forward();
         }
+        chip8_logging(&chip8);
         for (int i = 0; i < numkeys; i++) {
             keyboard_state_last[i] = keyboard_state_current[i];
         }
@@ -58,6 +62,8 @@ int main(int argc, char *argv[]) {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    chip8_logging_end();
 
     return 0;
 }

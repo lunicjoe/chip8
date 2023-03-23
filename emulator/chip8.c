@@ -6,11 +6,11 @@
 #include <time.h>
 #include "../log.h"
 
-SDL_Rect rectangle;
+SDL_Rect pixel_rect;
 Chip8 chip8;
 
-int cycle;
-Chip8 *cycles;
+int i_cycle = 0;
+Chip8 *chip8_states;
 
 char instruction[INSTRUCTION_SIZE] = "";
 
@@ -35,33 +35,33 @@ uint8_t font[] = {
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-uint8_t get_0x00() {
-    return (chip8.opcode & 0x0f00) >> 8;
+uint8_t get_0x00(uint16_t opcode) {
+    return (opcode & 0x0f00) >> 8;
 }
-uint8_t get_00x0() {
-    return (chip8.opcode & 0x00f0) >> 4;
+uint8_t get_00x0(uint16_t opcode) {
+    return (opcode & 0x00f0) >> 4;
 }
-uint8_t get_00xx() {
-    return chip8.opcode & 0x00ff;
+uint8_t get_00xx(uint16_t opcode) {
+    return opcode & 0x00ff;
 }
-uint16_t get_0xxx() {
-    return chip8.opcode & 0x0fff;
+uint16_t get_0xxx(uint16_t opcode) {
+    return opcode & 0x0fff;
 }
 
 void chip8_init() {
     srand(time(NULL));
-    cycles = malloc(sizeof(Chip8));
-    SDL_RectEmpty(&rectangle);
-    rectangle.h = PIXEL_SIZE;
-    rectangle.w = PIXEL_SIZE;
+    chip8_states = malloc(sizeof(Chip8));
+    SDL_RectEmpty(&pixel_rect);
+    pixel_rect.h = PIXEL_SIZE;
+    pixel_rect.w = PIXEL_SIZE;
     chip8.opcode = 0;
     chip8.pc = START_ADDRESS;
     chip8.sp = 0;
-    for (int i = 0; i < 16; i++) {
-        chip8.pressed_key[i] = false;
+    for (int key = 0; key < 16; key++) {
+        chip8.pressed_key[key] = false;
     }
-    for (int i = 0; i < 5 * 0x10; i++) {
-        chip8.memory[FONT_ADDRESS + i] = font[i];
+    for (int i_byte = 0; i_byte < 5 * 0x10; i_byte++) {
+        chip8.memory[FONT_ADDRESS + i_byte] = font[i_byte];
     }
 }
 
@@ -71,241 +71,212 @@ int chip8_load_rom(char *file) {
     fseek(rom, 0, SEEK_END);
     const long rom_size = ftell(rom);
     rewind(rom);
-    uint8_t *rom_buffer = (uint8_t*) malloc(sizeof(uint8_t) * rom_size);
-    fread(rom_buffer, sizeof(uint8_t), rom_size, rom);
+    uint8_t *rom_buffer = (uint8_t*) malloc(rom_size);
+    fread(rom_buffer, 1, rom_size, rom);
     fclose(rom);
-    for (int i = 0; i < rom_size; i += 2) {
-        chip8.memory[START_ADDRESS + i] = rom_buffer[i];
-        chip8.memory[START_ADDRESS + i + 1] = rom_buffer[i + 1];
+    for (int i_byte = 0; i_byte + 1 < rom_size; i_byte += 2) {
+        chip8.memory[START_ADDRESS + i_byte] = rom_buffer[i_byte];
+        chip8.memory[START_ADDRESS + i_byte + 1] = rom_buffer[i_byte + 1];
     }
     return 1;
 }
 
 void (*cpu_instructions[16])();
-void chip8_cycle() {
-    memcpy(&cycles[cycle], &chip8, sizeof(Chip8));
-    cycle++;
-    cycles = realloc(cycles, sizeof(Chip8) * (cycle + 1));
+void chip8_forward() {
+    memcpy(&chip8_states[i_cycle], &chip8, sizeof(Chip8));
+    i_cycle++;
+    chip8_states = realloc(chip8_states, sizeof(Chip8) * (i_cycle + 1));
 
     if (chip8.delay_timer > 0) chip8.delay_timer--;
-    for (int i = 0; i < 16; i++) {
-        chip8.pressed_key[i] = SDL_GetKeyboardState(NULL)[keys[i]];
+    for (int key = 0; key < 16; key++) {
+        chip8.pressed_key[key] = SDL_GetKeyboardState(NULL)[keys[key]];
     }
-    uint16_t instruction_address = chip8.pc;
     chip8.opcode = (chip8.memory[chip8.pc] << 8) | chip8.memory[chip8.pc + 1];
 
     cpu_instructions[(chip8.opcode & 0xf000) >> 12]();
-    chip8_log(&chip8, instruction_address, instruction);
     chip8.pc += 2;
 }
 
 void chip8_backward() {
-    if (cycle > 0) {
-        cycle--;
-        memcpy(&chip8, &cycles[cycle], sizeof(Chip8));
+    if (i_cycle > 0) {
+        i_cycle--;
+        memcpy(&chip8, &chip8_states[i_cycle], sizeof(Chip8));
+        chip8_logging(&chip8);
     }
 }
 
 void chip8_render(SDL_Renderer *renderer) {
     for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) {
-        rectangle.x = pixel % SCREEN_WIDTH * PIXEL_SIZE;
-        rectangle.y = (pixel - (pixel % SCREEN_WIDTH)) / SCREEN_WIDTH * PIXEL_SIZE;
-        if (chip8.graphics_memory[pixel]) SDL_RenderFillRect(renderer, &rectangle);
-        SDL_SetRenderDrawColor(renderer, 0x33, 0x33, 0x33, 0);
-        SDL_RenderDrawRect(renderer, &rectangle);
+        pixel_rect.x = pixel % SCREEN_WIDTH * PIXEL_SIZE;
+        pixel_rect.y = (pixel - (pixel % SCREEN_WIDTH)) / SCREEN_WIDTH * PIXEL_SIZE;
+        if (chip8.graphics_memory[pixel]) SDL_RenderFillRect(renderer, &pixel_rect);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        SDL_RenderDrawRect(renderer, &pixel_rect);
         SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0);
     }
 }
 
 void cpu_cls_ret() {
-    if (get_00xx() == 0xe0) {
-        bytecode_log("cls");
+    if (get_00xx(chip8.opcode) == 0xe0) {
         for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) {
             chip8.graphics_memory[pixel] = 0;
         }
-    } else if (get_00xx() == 0xee) {
-        bytecode_log("ret");
+    } else if (get_00xx(chip8.opcode) == 0xee) {
         chip8.sp--;
         chip8.pc = chip8.stack[chip8.sp] - 2;
         chip8.stack[chip8.sp] = 0;
     }
 }
 void cpu_jump() {
-    bytecode_log("jmp 0x%X", get_0xxx());
-    chip8.pc = get_0xxx() - 2;
+    chip8.pc = get_0xxx(chip8.opcode) - 2;
 }
 void cpu_call() {
-    bytecode_log("call 0x%X", get_0xxx());
     if (chip8.sp < 16) {
         chip8.stack[chip8.sp] = chip8.pc + 2;
         chip8.sp++;
-        chip8.pc = get_0xxx() - 2;
+        chip8.pc = get_0xxx(chip8.opcode) - 2;
     }
 }
 void cpu_se_Vx_byte() {
-    bytecode_log("se V%X, 0x%X", get_0x00(), get_00xx());
-    if (chip8.V[get_0x00()] == get_00xx()) chip8.pc += 2;
+    if (chip8.V[get_0x00(chip8.opcode)] == get_00xx(chip8.opcode)) chip8.pc += 2;
 }
 void cpu_sne_Vx_byte() {
-    bytecode_log("sne V%X, 0x%X", get_0x00(), get_00xx());
-    if (chip8.V[get_0x00()] != get_00xx()) chip8.pc += 2;
+    if (chip8.V[get_0x00(chip8.opcode)] != get_00xx(chip8.opcode)) chip8.pc += 2;
 }
 void cpu_se_Vx_Vx() {
-    bytecode_log("se V%X, V%X", get_0x00(), get_00x0());
-    if (chip8.V[get_0x00()] == chip8.V[get_00x0()]) chip8.pc += 2;
+    if (chip8.V[get_0x00(chip8.opcode)] == chip8.V[get_00x0(chip8.opcode)]) chip8.pc += 2;
 }
 void cpu_load_Vx_byte() {
-    bytecode_log("ld V%X, 0x%X", get_0x00(), get_00xx());
-    chip8.V[get_0x00()] = get_00xx();
+    chip8.V[get_0x00(chip8.opcode)] = get_00xx(chip8.opcode);
 }
 void cpu_add_Vx_byte() {
-    bytecode_log("add V%X, 0x%X", get_0x00(), get_00xx());
-    chip8.V[0xf] = chip8.V[get_0x00()] + get_00xx() > 0xff ? 1 : 0;
-    chip8.V[get_0x00()] += get_00xx();
+    chip8.V[0xf] = chip8.V[get_0x00(chip8.opcode)] + get_00xx(chip8.opcode) > 0xff ? 1 : 0;
+    chip8.V[get_0x00(chip8.opcode)] += get_00xx(chip8.opcode);
 }
 void (*cpu_arithmetics[])();
 void cpu_arithmetic() {
     if (cpu_arithmetics[chip8.opcode & 0xf] != NULL) cpu_arithmetics[chip8.opcode & 0xf]();
 }
 void cpu_sne_Vx_Vx() {
-    bytecode_log("sne V%X, V%X", get_0x00(), get_00x0());
-    if (chip8.V[get_0x00()] != chip8.V[get_00x0()]) chip8.pc += 2;
+    if (chip8.V[get_0x00(chip8.opcode)] != chip8.V[get_00x0(chip8.opcode)]) chip8.pc += 2;
 }
 void cpu_load_index_byte() {
-    bytecode_log("ld I, 0x%X", get_0xxx());
-    chip8.index = get_0xxx();
+    chip8.index = get_0xxx(chip8.opcode);
+}
+void cpu_jump_NNN_V0() {
+    chip8.pc = chip8.V[0] + get_0xxx(chip8.opcode) - 2;
 }
 void cpu_rand() {
-    bytecode_log("rnd V%X, 0x%02X", get_0x00(), get_00xx());
-    chip8.V[get_0x00()] = (rand() % 0xff) & get_00xx();
+    chip8.V[get_0x00(chip8.opcode)] = (rand() % 0xff) & get_00xx(chip8.opcode);
 }
 void cpu_draw() {
-    bytecode_log("drw V%X, V%X, 0x%02X", get_0x00(), get_00x0(), chip8.opcode & 0xf);
-    const uint8_t x_sprite = chip8.V[get_0x00()];
-    const uint8_t y_sprite = chip8.V[get_00x0()];
+    const uint8_t x_sprite = chip8.V[get_0x00(chip8.opcode)];
+    const uint8_t y_sprite = chip8.V[get_00x0(chip8.opcode)];
     const uint8_t rows = chip8.opcode & 0xf;
     for (int y = 0; y < rows; y++) {
-        uint8_t sprite_row = chip8.memory[chip8.index + y];
         for (int x = 0; x < 8; x++) {
-            if ((x_sprite + x < SCREEN_WIDTH) && (y_sprite + y < SCREEN_HEIGHT)) {
-                if ((sprite_row & (0x80 >> x)) != 0) {
-                    const uint16_t pixel = (x_sprite + x) + SCREEN_WIDTH * (y_sprite + y);
-                    chip8.V[0xf] = chip8.graphics_memory[pixel] ? 1 : 0;
-                    chip8.graphics_memory[pixel] ^= 1;
-                }
+            if (chip8.memory[chip8.index + y] << x & 0x80) {
+                const uint16_t pixel = (x_sprite + x) % SCREEN_WIDTH + SCREEN_WIDTH * ((y_sprite + y) % SCREEN_HEIGHT);
+                chip8.V[0xf] = (chip8.graphics_memory[pixel] == 1) ? 1 : 0;
+                chip8.graphics_memory[pixel] ^= 1;
             }
         }
     }
 }
 void cpu_skp_sknp() {
-    if (get_00xx() == 0x9e) {
-        bytecode_log("skp V%X", get_0x00());
-        if (chip8.pressed_key[chip8.V[get_0x00()]]) chip8.pc += 2;
-    } else if (get_00xx() == 0xa1) {
-        bytecode_log("sknp V%X", get_0x00());
-        if (!chip8.pressed_key[chip8.V[get_0x00()]]) chip8.pc += 2;
+    if (get_00xx(chip8.opcode) == 0x9e) {
+        if (chip8.pressed_key[chip8.V[get_0x00(chip8.opcode)]]) chip8.pc += 2;
+    } else if (get_00xx(chip8.opcode) == 0xa1) {
+        if (!chip8.pressed_key[chip8.V[get_0x00(chip8.opcode)]]) chip8.pc += 2;
     }
 }
 void cpu_f() {
-    switch (get_00xx()) {
+    uint16_t number;
+    switch (get_00xx(chip8.opcode)) {
         case 0x7:
-            bytecode_log("ld V%X, DT", get_0x00());
-            chip8.V[get_0x00()] = chip8.delay_timer;
+            chip8.V[get_0x00(chip8.opcode)] = chip8.delay_timer;
             break;
         case 0x0a:
-            bytecode_log("ld V%X, KEY", get_0x00());
             for (int key = 0; key < 16; key++) {
                 if (chip8.pressed_key[key]) {
-                    chip8.V[get_0x00()] = key;
+                    chip8.V[get_0x00(chip8.opcode)] = key;
                     return;
                 }
             }
             chip8.pc -= 2;
             break;
         case 0x15:
-            bytecode_log("ld DT, V%X", get_0x00());
-            chip8.delay_timer = chip8.V[get_0x00()];
+            chip8.delay_timer = chip8.V[get_0x00(chip8.opcode)];
             break;
         case 0x1e:
-            bytecode_log("add I, V%X", get_0x00());
-            chip8.index += chip8.V[get_0x00()];
+            chip8.index += chip8.V[get_0x00(chip8.opcode)];
             break;
         case 0x29:
-            bytecode_log("ld I, FONT(V%X)", get_0x00());
-            chip8.index = FONT_ADDRESS + chip8.V[get_0x00()] * 5;
+            chip8.index = FONT_ADDRESS + chip8.V[get_0x00(chip8.opcode)] * 5;
             break;
         case 0x33:
-            bytecode_log("bcd V%X", get_0x00());
-            int number = chip8.V[get_0x00()];
+            number = chip8.V[get_0x00(chip8.opcode)];
             for (int i = 0; i < 3; i++) {
                 chip8.memory[chip8.index + 2 - i] = number % 10;
                 number /= 10;
             }
             break;
         case 0x55:
-            bytecode_log("registers dump");
-            for (int i = 0; i <= get_0x00(); i++) {
-                chip8.memory[START_ADDRESS + chip8.index + i] = chip8.V[i];
+            for (int i = 0; i <= get_0x00(chip8.opcode); i++) {
+                chip8.memory[chip8.index + i] = chip8.V[i];
             }
             break;
         case 0x65:
-            bytecode_log("registers load");
-            for (int i = 0; i <= get_0x00(); i++) {
+            for (int i = 0; i <= get_0x00(chip8.opcode); i++) {
                 chip8.V[i] = chip8.memory[chip8.index + i];
             }
             break;
     }
 }
-
+// cpu arithmetics
 void cpu_load_Vx_Vx() {
-    bytecode_log("ld V%X, V%X", get_0x00(), get_00x0());
-    chip8.V[get_0x00()] = chip8.V[get_00x0()];
+    chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
 }
 void cpu_or() {
-    bytecode_log("or V%X, V%X", get_0x00(), get_00x0());
-    chip8.V[get_0x00()] |= chip8.V[get_00x0()];
+    chip8.V[0xf] = 0;
+    chip8.V[get_0x00(chip8.opcode)] |= chip8.V[get_00x0(chip8.opcode)];
 }
 void cpu_and() {
-    bytecode_log("and V%X, V%X", get_0x00(), get_00x0());
-    chip8.V[get_0x00()] &= chip8.V[get_00x0()];
-
+    chip8.V[0xf] = 0;
+    chip8.V[get_0x00(chip8.opcode)] &= chip8.V[get_00x0(chip8.opcode)];
 }
 void cpu_xor() {
-    bytecode_log("xor V%X, V%X", get_0x00(), get_00x0());
-    chip8.V[get_0x00()] ^= chip8.V[get_00x0()];
+    chip8.V[0xf] = 0;
+    chip8.V[get_0x00(chip8.opcode)] ^= chip8.V[get_00x0(chip8.opcode)];
 }
 void cpu_add() {
-    bytecode_log("add V%X, V%X", get_0x00(), get_00x0());
-    chip8.V[0xf] = chip8.V[get_0x00()] + chip8.V[get_00x0()] > 0xff ? 1: 0;
-    chip8.V[get_0x00()] += chip8.V[get_00x0()];
+    chip8.V[0xf] = chip8.V[get_0x00(chip8.opcode)] + chip8.V[get_00x0(chip8.opcode)] > 0xff ? 1: 0;
+    chip8.V[get_0x00(chip8.opcode)] += chip8.V[get_00x0(chip8.opcode)];
 }
 void cpu_sub() {
-    bytecode_log("sub V%X, V%X", get_0x00(), get_00x0());
-    chip8.V[0xf] = chip8.V[get_0x00()] -= chip8.V[get_00x0()] < 0 ? 1 : 0;
-    chip8.V[get_0x00()] -= chip8.V[get_00x0()];
+    chip8.V[0xf] = chip8.V[get_0x00(chip8.opcode)] - chip8.V[get_00x0(chip8.opcode)] < 0 ? 1 : 0;
+    chip8.V[get_0x00(chip8.opcode)] -= chip8.V[get_00x0(chip8.opcode)];
 }
 void cpu_shr() {
-    bytecode_log("shr V%X", get_0x00());
-    chip8.V[0xf] = chip8.V[get_0x00()] & 1;
-    chip8.V[get_0x00()] >>= 1;
+    chip8.V[0xf] = chip8.V[get_0x00(chip8.opcode)] & 1;
+    chip8.V[get_0x00(chip8.opcode)] >>= 1;
 }
 void cpu_subn() {
-    bytecode_log("subn V%X, V%X", get_0x00(), get_00x0());
-    chip8.V[0xf] = chip8.V[get_00x0()] - chip8.V[get_0x00()] < 0 ? 0 : 1;
-    chip8.V[get_0x00()] = chip8.V[get_00x0()] - chip8.V[get_0x00()];
+    chip8.V[0xf] = chip8.V[get_00x0(chip8.opcode)] - chip8.V[get_0x00(chip8.opcode)] < 0 ? 0 : 1;
+    chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)] - chip8.V[get_0x00(chip8.opcode)];
 }
 void cpu_shl() {
-    bytecode_log("shl V%X", get_0x00());
-    chip8.V[0xf] = chip8.V[get_0x00()] & 0x8000;
-    chip8.V[get_0x00()] <<= 1;
+    chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[0xf] = ((chip8.V[get_0x00(chip8.opcode)] & 0x80) == 0x80) ? 1 : 0;
+    chip8.V[get_0x00(chip8.opcode)] <<= 1;
 }
 
 void (*cpu_instructions[16])() = {
         &cpu_cls_ret, &cpu_jump, &cpu_call, &cpu_se_Vx_byte, &cpu_sne_Vx_byte, &cpu_se_Vx_Vx, &cpu_load_Vx_byte,
-        &cpu_add_Vx_byte, &cpu_arithmetic,
-        &cpu_sne_Vx_Vx, &cpu_load_index_byte, NULL, &cpu_rand, &cpu_draw, &cpu_skp_sknp, &cpu_f
+        &cpu_add_Vx_byte, &cpu_arithmetic, &cpu_sne_Vx_Vx, &cpu_load_index_byte, &cpu_jump_NNN_V0,
+        &cpu_rand, &cpu_draw, &cpu_skp_sknp, &cpu_f
 };
 void (*cpu_arithmetics[])() = {
-        &cpu_load_Vx_Vx, &cpu_or, &cpu_and, &cpu_xor, &cpu_add, &cpu_sub,
-        &cpu_shr, &cpu_subn, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &cpu_shl,
+        &cpu_load_Vx_Vx, &cpu_or, &cpu_and, &cpu_xor, &cpu_add, &cpu_sub, &cpu_shr, &cpu_subn,
+        NULL, NULL, NULL, NULL, NULL, NULL, &cpu_shl,
 };

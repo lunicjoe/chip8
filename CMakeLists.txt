@@ -4,10 +4,14 @@ project(emulator C)
 set(CMAKE_C_STANDARD 23)
 
 find_package(SDL2 REQUIRED)
+find_package(Curses REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
+include_directories(${CURSES_INCLUDE_DIRS})
 
-add_executable(emulator emulator.c emulator/chip8.h emulator/chip8.c log.h log.c)
-add_executable(log_reader log_reader.c)
+add_executable(emulator emulator.c emulator/chip8.h emulator/chip8.c log.h log.c disassembler.h disassembler.c)
 add_executable(disassembler disassembler.c)
 
+add_compile_definitions(NCURSES_LOGGING)
+
 target_link_libraries(emulator ${SDL2_LIBRARIES})
+target_link_libraries(emulator ${CURSES_LIBRARIES})

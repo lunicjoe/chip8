@@ -24,11 +24,16 @@ typedef struct {
     bool pressed_key[16];
 } Chip8;
 extern Chip8 chip8;
-extern SDL_Rect rectangle;
+extern SDL_Rect pixel_rect;
+
+uint8_t get_0x00(uint16_t opcode);
+uint8_t get_00x0(uint16_t opcode);
+uint8_t get_00xx(uint16_t opcode);
+uint16_t get_0xxx(uint16_t opcode);
 
 void chip8_init();
 int chip8_load_rom(char *file);
-void chip8_cycle();
+void chip8_forward();
 void chip8_backward();
 void chip8_render(SDL_Renderer *renderer);
 
