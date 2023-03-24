@@ -17,7 +17,7 @@ void chip8_logging(Chip8 *chip8) {
 #ifndef NCURSES_LOGGING
     if (logging) {
         char *instruction;
-        instruction = get_instruction(chip8->opcode);
+        instruction = get_asm_code(chip8->opcode);
         printf("0x%04x: %s0x%04x %s%s %sPC:0x%02X I:0x%02X V(", chip8->pc, GREY, chip8->opcode, YELLOW, instruction, GREY, chip8->pc, chip8->index);
         for (int v = 0; v < 16; v++) {
             printf("%X:%02X", v, chip8->V[v]);
