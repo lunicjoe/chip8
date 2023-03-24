@@ -238,24 +238,26 @@ void cpu_load_Vx_Vx() {
     chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
 }
 void cpu_or() {
-    chip8.V[0xf] = 0;
     chip8.V[get_0x00(chip8.opcode)] |= chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[0xf] = 0;
 }
 void cpu_and() {
     chip8.V[get_0x00(chip8.opcode)] &= chip8.V[get_00x0(chip8.opcode)];
     chip8.V[0xf] = 0;
 }
 void cpu_xor() {
-    chip8.V[0xf] = 0;
     chip8.V[get_0x00(chip8.opcode)] ^= chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[0xf] = 0;
 }
 void cpu_add() {
-    chip8.V[0xf] = chip8.V[get_0x00(chip8.opcode)] + chip8.V[get_00x0(chip8.opcode)] > 0xff ? 1: 0;
+    uint8_t flag = (chip8.V[get_0x00(chip8.opcode)] + chip8.V[get_00x0(chip8.opcode)]) > 0xff ? 1: 0;
     chip8.V[get_0x00(chip8.opcode)] += chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[0xf] = flag;
 }
 void cpu_sub() {
-    chip8.V[0xf] = (chip8.V[get_0x00(chip8.opcode)] - chip8.V[get_00x0(chip8.opcode)]) < 0 ? 0 : 1;
+    uint8_t flag = (chip8.V[get_0x00(chip8.opcode)] - chip8.V[get_00x0(chip8.opcode)]) < 0 ? 0 : 1;
     chip8.V[get_0x00(chip8.opcode)] -= chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[0xf] = flag;
 }
 void cpu_shr() {
     chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
@@ -264,12 +266,13 @@ void cpu_shr() {
     chip8.V[0xf] = flag;
 }
 void cpu_subn() {
-    chip8.V[0xf] = chip8.V[get_00x0(chip8.opcode)] - chip8.V[get_0x00(chip8.opcode)] < 0 ? 0 : 1;
+    uint8_t flag = chip8.V[get_00x0(chip8.opcode)] - chip8.V[get_0x00(chip8.opcode)] < 0 ? 0 : 1;
     chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)] - chip8.V[get_0x00(chip8.opcode)];
+    chip8.V[0xf] = flag;
 }
 void cpu_shl() {
     chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
-    uint8_t flag = chip8.V[get_0x00(chip8.opcode)] & 0x80;
+    uint8_t flag = (chip8.V[get_0x00(chip8.opcode)] & 0x80) >> 7;
     chip8.V[get_0x00(chip8.opcode)] <<= 1;
     chip8.V[0xf] = flag;
 }
