@@ -258,8 +258,10 @@ void cpu_sub() {
     chip8.V[get_0x00(chip8.opcode)] -= chip8.V[get_00x0(chip8.opcode)];
 }
 void cpu_shr() {
-    chip8.V[0xf] = chip8.V[get_0x00(chip8.opcode)] & 1;
+    chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
+    uint8_t flag = chip8.V[get_0x00(chip8.opcode)] & 1;
     chip8.V[get_0x00(chip8.opcode)] >>= 1;
+    chip8.V[0xf] = flag;
 }
 void cpu_subn() {
     chip8.V[0xf] = chip8.V[get_00x0(chip8.opcode)] - chip8.V[get_0x00(chip8.opcode)] < 0 ? 0 : 1;
@@ -267,8 +269,9 @@ void cpu_subn() {
 }
 void cpu_shl() {
     chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
-    chip8.V[0xf] = ((chip8.V[get_0x00(chip8.opcode)] & 0x80) == 0x80) ? 1 : 0;
+    uint8_t flag = chip8.V[get_0x00(chip8.opcode)] & 0x80;
     chip8.V[get_0x00(chip8.opcode)] <<= 1;
+    chip8.V[0xf] = flag;
 }
 
 void (*cpu_instructions[16])() = {
