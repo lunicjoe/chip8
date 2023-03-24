@@ -1,7 +1,9 @@
 # Chip8 Emulator
 
-```./chip8 [rom_path] --log```
+```./chip8 [rom_path] --log --debug```
 
-- Press the space bar to run
-- Press and released the return key to skip instructions one by one
-- Remove `--log` if you don't need logging
+- `--log` enable debug (NCurses / printf, depending on NCURSES_LOGGING definition)
+- `--debug` enable step-by-step instructions
+  - left: backward
+  - right: forward
+  - space: fast-forward/backward (in combination with left/right)
