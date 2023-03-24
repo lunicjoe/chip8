@@ -221,12 +221,14 @@ void cpu_f() {
             break;
         case 0x55:
             for (int i = 0; i <= get_0x00(chip8.opcode); i++) {
-                chip8.memory[chip8.index + i] = chip8.V[i];
+                chip8.memory[chip8.index] = chip8.V[i];
+                chip8.index++;
             }
             break;
         case 0x65:
             for (int i = 0; i <= get_0x00(chip8.opcode); i++) {
-                chip8.V[i] = chip8.memory[chip8.index + i];
+                chip8.V[i] = chip8.memory[chip8.index];
+                chip8.index++;
             }
             break;
     }
