@@ -240,8 +240,8 @@ void cpu_or() {
     chip8.V[get_0x00(chip8.opcode)] |= chip8.V[get_00x0(chip8.opcode)];
 }
 void cpu_and() {
-    chip8.V[0xf] = 0;
     chip8.V[get_0x00(chip8.opcode)] &= chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[0xf] = 0;
 }
 void cpu_xor() {
     chip8.V[0xf] = 0;
