@@ -53,18 +53,10 @@ uint8_t font[] = {
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-uint8_t get_0x00(uint16_t opcode) {
-    return (opcode & 0x0f00) >> 8;
-}
-uint8_t get_00x0(uint16_t opcode) {
-    return (opcode & 0x00f0) >> 4;
-}
-uint8_t get_00xx(uint16_t opcode) {
-    return opcode & 0x00ff;
-}
-uint16_t get_0xxx(uint16_t opcode) {
-    return opcode & 0x0fff;
-}
+#define get_0x00 get_0x00(chip8.opcode)
+#define get_00x0 get_00x0(chip8.opcode)
+#define get_00xx get_00xx(chip8.opcode)
+#define get_0xxx get_0xxx(chip8.opcode)
 
 void chip8_init() {
     srand(time(NULL));
@@ -132,61 +124,61 @@ void chip8_render(SDL_Renderer *renderer) {
 }
 
 void cpu_cls_ret() {
-    if (get_00xx(chip8.opcode) == 0xe0) {
+    if (get_00xx == 0xe0) {
         for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) {
             chip8.graphics_memory[pixel] = 0;
         }
-    } else if (get_00xx(chip8.opcode) == 0xee) {
+    } else if (get_00xx == 0xee) {
         chip8.sp--;
         chip8.pc = chip8.stack[chip8.sp] - 2;
         chip8.stack[chip8.sp] = 0;
     }
 }
 void cpu_jump() {
-    chip8.pc = get_0xxx(chip8.opcode) - 2;
+    chip8.pc = get_0xxx - 2;
 }
 void cpu_call() {
     if (chip8.sp < 16) {
         chip8.stack[chip8.sp] = chip8.pc + 2;
         chip8.sp++;
-        chip8.pc = get_0xxx(chip8.opcode) - 2;
+        chip8.pc = get_0xxx - 2;
     }
 }
 void cpu_se_Vx_byte() {
-    if (chip8.V[get_0x00(chip8.opcode)] == get_00xx(chip8.opcode)) chip8.pc += 2;
+    if (chip8.V[get_0x00] == get_00xx) chip8.pc += 2;
 }
 void cpu_sne_Vx_byte() {
-    if (chip8.V[get_0x00(chip8.opcode)] != get_00xx(chip8.opcode)) chip8.pc += 2;
+    if (chip8.V[get_0x00] != get_00xx) chip8.pc += 2;
 }
 void cpu_se_Vx_Vx() {
-    if (chip8.V[get_0x00(chip8.opcode)] == chip8.V[get_00x0(chip8.opcode)]) chip8.pc += 2;
+    if (chip8.V[get_0x00] == chip8.V[get_00x0]) chip8.pc += 2;
 }
 void cpu_load_Vx_byte() {
-    chip8.V[get_0x00(chip8.opcode)] = get_00xx(chip8.opcode);
+    chip8.V[get_0x00] = get_00xx;
 }
 void cpu_add_Vx_byte() {
-    chip8.V[0xf] = chip8.V[get_0x00(chip8.opcode)] + get_00xx(chip8.opcode) > 0xff ? 1 : 0;
-    chip8.V[get_0x00(chip8.opcode)] += get_00xx(chip8.opcode);
+    chip8.V[0xf] = chip8.V[get_0x00] + get_00xx > 0xff ? 1 : 0;
+    chip8.V[get_0x00] += get_00xx;
 }
 void (*cpu_arithmetics[])();
 void cpu_arithmetic() {
     if (cpu_arithmetics[chip8.opcode & 0xf] != NULL) cpu_arithmetics[chip8.opcode & 0xf]();
 }
 void cpu_sne_Vx_Vx() {
-    if (chip8.V[get_0x00(chip8.opcode)] != chip8.V[get_00x0(chip8.opcode)]) chip8.pc += 2;
+    if (chip8.V[get_0x00] != chip8.V[get_00x0]) chip8.pc += 2;
 }
 void cpu_load_index_byte() {
-    chip8.index = get_0xxx(chip8.opcode);
+    chip8.index = get_0xxx;
 }
 void cpu_jump_NNN_V0() {
-    chip8.pc = chip8.V[0] + get_0xxx(chip8.opcode) - 2;
+    chip8.pc = chip8.V[0] + get_0xxx - 2;
 }
 void cpu_rand() {
-    chip8.V[get_0x00(chip8.opcode)] = (rand() % 0xff) & get_00xx(chip8.opcode);
+    chip8.V[get_0x00] = (rand() % 0xff) & get_00xx;
 }
 void cpu_draw() {
-    const uint8_t x_sprite = chip8.V[get_0x00(chip8.opcode)];
-    const uint8_t y_sprite = chip8.V[get_00x0(chip8.opcode)];
+    const uint8_t x_sprite = chip8.V[get_0x00];
+    const uint8_t y_sprite = chip8.V[get_00x0];
     const uint8_t rows = chip8.opcode & 0xf;
     for (int y = 0; y < rows; y++) {
         for (int x = 0; x < 8; x++) {
@@ -199,51 +191,51 @@ void cpu_draw() {
     }
 }
 void cpu_skp_sknp() {
-    if (get_00xx(chip8.opcode) == 0x9e) {
-        if (chip8.pressed_key[chip8.V[get_0x00(chip8.opcode)]]) chip8.pc += 2;
-    } else if (get_00xx(chip8.opcode) == 0xa1) {
-        if (!chip8.pressed_key[chip8.V[get_0x00(chip8.opcode)]]) chip8.pc += 2;
+    if (get_00xx == 0x9e) {
+        if (chip8.pressed_key[chip8.V[get_0x00]]) chip8.pc += 2;
+    } else if (get_00xx == 0xa1) {
+        if (!chip8.pressed_key[chip8.V[get_0x00]]) chip8.pc += 2;
     }
 }
 void cpu_f() {
     uint16_t number;
-    switch (get_00xx(chip8.opcode)) {
+    switch (get_00xx) {
         case 0x7:
-            chip8.V[get_0x00(chip8.opcode)] = chip8.delay_timer;
+            chip8.V[get_0x00] = chip8.delay_timer;
             break;
         case 0x0a:
             for (int key = 0; key < 16; key++) {
                 if (chip8.pressed_key[key]) {
-                    chip8.V[get_0x00(chip8.opcode)] = key;
+                    chip8.V[get_0x00] = key;
                     return;
                 }
             }
             chip8.pc -= 2;
             break;
         case 0x15:
-            chip8.delay_timer = chip8.V[get_0x00(chip8.opcode)];
+            chip8.delay_timer = chip8.V[get_0x00];
             break;
         case 0x1e:
-            chip8.index += chip8.V[get_0x00(chip8.opcode)];
+            chip8.index += chip8.V[get_0x00];
             break;
         case 0x29:
-            chip8.index = FONT_ADDRESS + chip8.V[get_0x00(chip8.opcode)] * 5;
+            chip8.index = FONT_ADDRESS + chip8.V[get_0x00] * 5;
             break;
         case 0x33:
-            number = chip8.V[get_0x00(chip8.opcode)];
+            number = chip8.V[get_0x00];
             for (int i = 0; i < 3; i++) {
                 chip8.memory[chip8.index + 2 - i] = number % 10;
                 number /= 10;
             }
             break;
         case 0x55:
-            for (int i = 0; i <= get_0x00(chip8.opcode); i++) {
+            for (int i = 0; i <= get_0x00; i++) {
                 chip8.memory[chip8.index] = chip8.V[i];
                 chip8.index++;
             }
             break;
         case 0x65:
-            for (int i = 0; i <= get_0x00(chip8.opcode); i++) {
+            for (int i = 0; i <= get_0x00; i++) {
                 chip8.V[i] = chip8.memory[chip8.index];
                 chip8.index++;
             }
@@ -252,45 +244,45 @@ void cpu_f() {
 }
 // cpu arithmetics
 void cpu_load_Vx_Vx() {
-    chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[get_0x00] = chip8.V[get_00x0];
 }
 void cpu_or() {
-    chip8.V[get_0x00(chip8.opcode)] |= chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[get_0x00] |= chip8.V[get_00x0];
     chip8.V[0xf] = 0;
 }
 void cpu_and() {
-    chip8.V[get_0x00(chip8.opcode)] &= chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[get_0x00] &= chip8.V[get_00x0];
     chip8.V[0xf] = 0;
 }
 void cpu_xor() {
-    chip8.V[get_0x00(chip8.opcode)] ^= chip8.V[get_00x0(chip8.opcode)];
+    chip8.V[get_0x00] ^= chip8.V[get_00x0];
     chip8.V[0xf] = 0;
 }
 void cpu_add() {
-    uint8_t flag = (chip8.V[get_0x00(chip8.opcode)] + chip8.V[get_00x0(chip8.opcode)]) > 0xff ? 1: 0;
-    chip8.V[get_0x00(chip8.opcode)] += chip8.V[get_00x0(chip8.opcode)];
+    uint8_t flag = (chip8.V[get_0x00] + chip8.V[get_00x0]) > 0xff ? 1: 0;
+    chip8.V[get_0x00] += chip8.V[get_00x0];
     chip8.V[0xf] = flag;
 }
 void cpu_sub() {
-    uint8_t flag = (chip8.V[get_0x00(chip8.opcode)] - chip8.V[get_00x0(chip8.opcode)]) < 0 ? 0 : 1;
-    chip8.V[get_0x00(chip8.opcode)] -= chip8.V[get_00x0(chip8.opcode)];
+    uint8_t flag = (chip8.V[get_0x00] - chip8.V[get_00x0]) < 0 ? 0 : 1;
+    chip8.V[get_0x00] -= chip8.V[get_00x0];
     chip8.V[0xf] = flag;
 }
 void cpu_shr() {
-    chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
-    uint8_t flag = chip8.V[get_0x00(chip8.opcode)] & 1;
-    chip8.V[get_0x00(chip8.opcode)] >>= 1;
+    chip8.V[get_0x00] = chip8.V[get_00x0];
+    uint8_t flag = chip8.V[get_0x00] & 1;
+    chip8.V[get_0x00] >>= 1;
     chip8.V[0xf] = flag;
 }
 void cpu_subn() {
-    uint8_t flag = chip8.V[get_00x0(chip8.opcode)] - chip8.V[get_0x00(chip8.opcode)] < 0 ? 0 : 1;
-    chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)] - chip8.V[get_0x00(chip8.opcode)];
+    uint8_t flag = chip8.V[get_00x0] - chip8.V[get_0x00] < 0 ? 0 : 1;
+    chip8.V[get_0x00] = chip8.V[get_00x0] - chip8.V[get_0x00];
     chip8.V[0xf] = flag;
 }
 void cpu_shl() {
-    chip8.V[get_0x00(chip8.opcode)] = chip8.V[get_00x0(chip8.opcode)];
-    uint8_t flag = (chip8.V[get_0x00(chip8.opcode)] & 0x80) >> 7;
-    chip8.V[get_0x00(chip8.opcode)] <<= 1;
+    chip8.V[get_0x00] = chip8.V[get_00x0];
+    uint8_t flag = (chip8.V[get_0x00] & 0x80) >> 7;
+    chip8.V[get_0x00] <<= 1;
     chip8.V[0xf] = flag;
 }
 

@@ -3,6 +3,19 @@
 #include <stdlib.h>
 #include "emulator/chip8.h"
 
+uint8_t get_0x00(uint16_t opcode) {
+    return (opcode & 0x0f00) >> 8;
+}
+uint8_t get_00x0(uint16_t opcode) {
+    return (opcode & 0x00f0) >> 4;
+}
+uint8_t get_00xx(uint16_t opcode) {
+    return opcode & 0x00ff;
+}
+uint16_t get_0xxx(uint16_t opcode) {
+    return opcode & 0x0fff;
+}
+
 uint8_t* get_rom(FILE *rom_file, long *rom_size) {
     fseek(rom_file, 0, SEEK_END);
     *rom_size = ftell(rom_file);
@@ -92,7 +105,7 @@ char* get_asm_code(u_int16_t _opcode) {
             set_instruction("ld I, 0x%X", get_0xxx(_opcode));
             break;
         case 0xb000:
-            set_instruction("jmp V0, 0x%X", get_0xxx(chip8.opcode))
+            set_instruction("jmp V0, 0x%X", get_0xxx(_opcode))
             break;
         case 0xc000:
             set_instruction("rnd V%X, 0x%02X", get_0x00(_opcode), get_00xx(_opcode));
