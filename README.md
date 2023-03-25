@@ -1,14 +1,29 @@
 # Chip8 Emulator
 
 ## Usage
-### Run
-```./chip8 [rom_path] --log --debug```
+
+### Emulator
+```./emulator [rom_path] --log --debug```
 
 - `--log` enable debug (NCurses / printf, depending on NCURSES_LOGGING definition)
 - `--debug` enable step-by-step instructions
   - left: backward
   - right: forward
   - space: fast-forward/backward (in combination with left/right)
+
+### Disassembler
+```./disassembler [rom_path]```
+
+Usage example:
+``` bash
+[user@example ~]$ pwd
+/home/user
+[user@example ~]$ ./disassembler $HOME/roms/PONG
+[user@example ~]$ ls
+...
+PONG.asm
+...
+```
 
 ### Keyboard
 - Chip8's keyboard:
