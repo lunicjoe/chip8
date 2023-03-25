@@ -2,7 +2,7 @@
 #include <SDL2/SDL.h>
 #include "emulator/chip8.h"
 #include "log.h"
-#include "disassembler.h"
+#include "assembly.h"
 #include <libgen.h>
 
 bool debug = false;
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
         chip8_render(renderer);
 
         SDL_RenderPresent(renderer);
-        SDL_Delay(20);
+        SDL_Delay(10);
     }
 
     SDL_DestroyRenderer(renderer);

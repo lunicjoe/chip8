@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "../log.h"
-#include "../disassembler.h"
+#include "../assembly.h"
 
 SDL_Rect pixel_rect;
 Chip8 chip8;

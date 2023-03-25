@@ -4,7 +4,7 @@
 #include <ncurses.h>
 #include <SDL2/SDL.h>
 #include "emulator/chip8.h"
-#include "disassembler.h"
+#include "assembly.h"
 
 bool logging = false;
 bool initialize = false;
