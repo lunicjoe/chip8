@@ -15,7 +15,24 @@ Chip8 *chip8_states;
 
 char instruction[INSTRUCTION_SIZE] = "";
 
-int keys[] = {27, 30, 31, 32, 20, 26, 8, 4, 22, 7, 29, 6, 33, 21, 9, 25};
+int keys[] = {
+        SDL_SCANCODE_X,
+        SDL_SCANCODE_1,
+        SDL_SCANCODE_2,
+        SDL_SCANCODE_3,
+        SDL_SCANCODE_Q,
+        SDL_SCANCODE_W,
+        SDL_SCANCODE_E,
+        SDL_SCANCODE_A,
+        SDL_SCANCODE_S,
+        SDL_SCANCODE_D,
+        SDL_SCANCODE_Z,
+        SDL_SCANCODE_C,
+        SDL_SCANCODE_4,
+        SDL_SCANCODE_R,
+        SDL_SCANCODE_F,
+        SDL_SCANCODE_V
+};
 
 uint8_t font[] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
