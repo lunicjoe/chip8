@@ -1,23 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libgen.h>
 #include <stdint.h>
 #include "assembly.h"
 
-int disassemble(char *file) {
+int disassemble(char *file, char *output) {
     FILE *rom = fopen(file, "rb");
     if (!rom) {
         fprintf(stderr, "%s not found\n", file);
         return 1;
     }
 
-    char *asm_file;
-    asm_file = malloc(strlen(basename(file)) + 5);
-    snprintf(asm_file, strlen(basename(file)) + 5, "%s.asm", basename(file));
-    FILE *assembly = fopen(asm_file, "w");
+    FILE *assembly = fopen(output, "w");
     if (!assembly) {
-        fprintf(stderr, "failed to open %s", asm_file);
+        fprintf(stderr, "failed to open %s", output);
         return 1;
     }
     long rom_size;
@@ -37,7 +33,6 @@ int disassemble(char *file) {
 
 
 int main(int argc, char *argv[]) {
-    if (argc < 1) return 1;
-    disassemble(argv[1]);
-    printf("%s disassembled to %s.asm\n", argv[1], argv[1]);
+    if (argc < 2) return 1;
+    disassemble(argv[1], argv[2]);
 }
