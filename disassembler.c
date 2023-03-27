@@ -8,7 +8,7 @@
 int disassemble(char *file) {
     FILE *rom = fopen(file, "rb");
     if (!rom) {
-        fprintf(stderr, "%s not found", file);
+        fprintf(stderr, "%s not found\n", file);
         return 1;
     }
 
@@ -38,6 +38,6 @@ int disassemble(char *file) {
 
 int main(int argc, char *argv[]) {
     if (argc < 1) return 1;
-    printf("disassemble %s to %s.asm\n", argv[1], argv[1]);
     disassemble(argv[1]);
+    printf("%s disassembled to %s.asm\n", argv[1], argv[1]);
 }
