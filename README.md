@@ -11,19 +11,12 @@
   - right: forward
   - space: fast-forward/backward (in combination with left/right)
 
-### Disassembler
-```./disassembler [rom_path]```
+### Assembler
 
-Usage example:
-``` bash
-[user@example ~]$ pwd
-/home/user
-[user@example ~]$ ./disassembler $HOME/roms/PONG
-[user@example ~]$ ls
-...
-PONG.asm
-...
-```
+`./assembler pong.asm PONG`
+
+### Disassembler
+`./disassembler PONG pong.asm`
 
 ### Keyboard
 - Chip8's keyboard:
