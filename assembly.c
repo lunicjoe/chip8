@@ -184,12 +184,13 @@ uint16_t get_register_value(char *instruction) {
 }
 
 uint16_t get_binary(char *code) {
-    char *instruction[5];
     const char delimiters[] = " ,";
     int i = 0;
+    char **instruction = malloc(1 * sizeof(char*));
     instruction[i] = strtok(code, delimiters);
     do {
         i++;
+        instruction = realloc(instruction, (1 + i) * sizeof(char *));
     } while ((instruction[i] = strtok(NULL, delimiters)) != NULL);
     if (is_instruction("cls")) return 0x00e0;
     if (is_instruction("ret")) return 0x00ee;

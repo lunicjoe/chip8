@@ -12,8 +12,9 @@ int main(int argc, char *argv[]) {
     }
 
     FILE *rom = fopen(argv[2], "wb");
-    char instruction[100];
-    while (fgets(instruction, sizeof(instruction), code) != NULL) {
+    char *instruction = NULL;
+    size_t length;
+    while (getline(&instruction, &length, code) != -1) {
         instruction[strlen(instruction) - 1] = '\0';
         uint16_t opcode = get_binary(instruction);
         opcode = (opcode >> 8) | (opcode << 8);
