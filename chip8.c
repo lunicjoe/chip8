@@ -4,8 +4,8 @@
 #include <SDL2/SDL.h>
 #include <stdlib.h>
 #include <time.h>
-#include "../log.h"
-#include "../assembly.h"
+#include "log.h"
+#include "assembly.h"
 
 SDL_Rect pixel_rect;
 Chip8 chip8;
@@ -89,6 +89,21 @@ int chip8_load_rom(char *file) {
 }
 
 void (*cpu_instructions[16])();
+
+void chip8_update(const uint8_t *keyboard, const uint8_t *previous_keyboard, bool debug) {
+    if (debug) {
+        if (keyboard[SDL_SCANCODE_SPACE]) {
+            if (keyboard[SDL_SCANCODE_RIGHT]) chip8_forward();
+            if (keyboard[SDL_SCANCODE_LEFT]) chip8_backward();
+        } else {
+            if (!keyboard[SDL_SCANCODE_RIGHT] && previous_keyboard[SDL_SCANCODE_RIGHT]) chip8_forward();
+            if (!keyboard[SDL_SCANCODE_LEFT] && previous_keyboard[SDL_SCANCODE_LEFT]) chip8_backward();
+        }
+    } else {
+        chip8_forward();
+    }
+    chip8_logging(&chip8);
+}
 void chip8_forward() {
     memcpy(&chip8_states[i_cycle], &chip8, sizeof(Chip8));
     i_cycle++;

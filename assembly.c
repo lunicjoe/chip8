@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "emulator/chip8.h"
+#include "chip8.h"
 
 uint8_t get_0x00(uint16_t opcode) {
     return (opcode & 0x0f00) >> 8;

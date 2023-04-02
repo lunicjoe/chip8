@@ -2,7 +2,7 @@
 #define CHIP8_LOG_H
 
 #include <stdbool.h>
-#include "emulator/chip8.h"
+#include "chip8.h"
 
 #define INSTRUCTION_SIZE 0xff
 

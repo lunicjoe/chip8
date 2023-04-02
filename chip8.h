@@ -33,6 +33,7 @@ uint16_t get_0xxx(uint16_t opcode);
 
 void chip8_init();
 int chip8_load_rom(char *file);
+void chip8_update(const uint8_t *keyboard, const uint8_t *previous_keyboard, bool debug);
 void chip8_forward();
 void chip8_backward();
 void chip8_render(SDL_Renderer *renderer);

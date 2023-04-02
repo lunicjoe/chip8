@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
-#include "emulator/chip8.h"
+#include "chip8.h"
 #include "log.h"
 #include "assembly.h"
 
@@ -27,25 +27,14 @@ int main(int argc, char *argv[]) {
     SDL_CreateWindowAndRenderer(SCREEN_WIDTH * PIXEL_SIZE, SCREEN_HEIGHT * PIXEL_SIZE, SDL_WINDOW_RESIZABLE, &window, &renderer);
 
     int numkeys;
-    const uint8_t *keyboard_state_current = SDL_GetKeyboardState(&numkeys);
-    uint8_t *keyboard_state_last = malloc(numkeys);
+    const uint8_t *keyboard = SDL_GetKeyboardState(&numkeys);
+    uint8_t *previous_keyboard = malloc(numkeys);
     while (true) {
         SDL_PollEvent(&event);
         if (event.type == SDL_QUIT) break;
-        if (debug) {
-            if (keyboard_state_current[SDL_SCANCODE_SPACE]) {
-                if (keyboard_state_current[SDL_SCANCODE_RIGHT]) chip8_forward();
-                if (keyboard_state_current[SDL_SCANCODE_LEFT]) chip8_backward();
-            } else {
-                if (!keyboard_state_current[SDL_SCANCODE_RIGHT] && keyboard_state_last[SDL_SCANCODE_RIGHT]) chip8_forward();
-                if (!keyboard_state_current[SDL_SCANCODE_LEFT] && keyboard_state_last[SDL_SCANCODE_LEFT]) chip8_backward();
-            }
-        } else {
-            chip8_forward();
-        }
-        chip8_logging(&chip8);
+        chip8_update(keyboard, previous_keyboard, debug);
         for (int i = 0; i < numkeys; i++) {
-            keyboard_state_last[i] = keyboard_state_current[i];
+            previous_keyboard[i] = keyboard[i];
         }
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderClear(renderer);

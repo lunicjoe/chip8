@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <ncurses.h>
 #include <SDL2/SDL.h>
-#include "emulator/chip8.h"
+#include "chip8.h"
 #include "assembly.h"
 
 bool logging = false;
