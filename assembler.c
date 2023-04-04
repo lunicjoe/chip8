@@ -12,11 +12,11 @@ int main(int argc, char *argv[]) {
     }
 
     FILE *rom = fopen(argv[2], "wb");
-    char *instruction = NULL;
+    char *line = NULL;
     size_t length;
-    while (getline(&instruction, &length, code) != -1) {
-        instruction[strlen(instruction) - 1] = '\0';
-        uint16_t opcode = get_binary(instruction);
+    while (getline(&line, &length, code) != -1) {
+        line[strlen(line) - 1] = '\0';
+        uint16_t opcode = get_binary(line);
         opcode = (opcode >> 8) | (opcode << 8);
         fwrite(&opcode, 1, sizeof(opcode), rom);
     }

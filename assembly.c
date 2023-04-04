@@ -156,10 +156,9 @@ char* get_asm_code(u_int16_t opcode) {
     return instruction;
 }
 
-#define is_instruction(text) strcmp(instruction[0], text) == 0
-#define get_value(number) strtol(instruction[number], NULL, 0)
-#define is_reg(number) is_register(instruction[number])
-#define get_register(number) get_register_value(instruction[number])
+#define get_value(number) strtol(tokens[number], NULL, 0)
+#define is_reg(number) is_register(tokens[number])
+#define get_register(number) get_register_value(tokens[number])
 
 uint16_t set_000x(uint16_t number) {
     return number & 0xf;
@@ -183,110 +182,137 @@ uint16_t get_register_value(char *instruction) {
     return strtol(&instruction[1], NULL, 16);
 }
 
+typedef enum {
+    CLS, RET, JMP, CALL, SE, SNE, LD, ADD, RND, DRW, BCD, SKP, SKNP, OR, AND, XOR, SUB, SHR, SUBN, SHL, FONT, OTHER
+} instruction_type;
+typedef struct {
+    char *string;
+    instruction_type type;
+} instruction;
+instruction instructions[] = {
+        {"cls", CLS},
+        {"ret", RET},
+        {"jmp", JMP},
+        {"call", CALL},
+        {"se", SE},
+        {"sne", SNE},
+        {"ld", LD},
+        {"add", ADD},
+        {"rnd", RND},
+        {"drw", DRW},
+        {"bcd", BCD},
+        {"skp", SKP},
+        {"sknp", SKNP},
+        {"or", OR},
+        {"and", AND},
+        {"xor", XOR},
+        {"sub", SUB},
+        {"shr", SHR},
+        {"subn", SUBN},
+        {"shl", SHL},
+        {"font", FONT},
+};
+
+const char delimiters[] = " ,";
+
+instruction_type get_instruction(char *code) {
+    char *instruction_str = strtok(code, delimiters);
+    for (int i = 0; i < sizeof(instructions) / sizeof(instruction); i++) {
+        if (strcmp(instruction_str, instructions[i].string) == 0) return instructions[i].type;
+    }
+    return OTHER;
+}
+
 uint16_t get_binary(char *code) {
-    const char delimiters[] = " ,";
     int i = 0;
-    char **instruction = malloc(1 * sizeof(char*));
-    instruction[i] = strtok(code, delimiters);
+    char **tokens = malloc(1 * sizeof(char*));
+    tokens[i] = strtok(code, delimiters);
     do {
         i++;
-        instruction = realloc(instruction, (1 + i) * sizeof(char *));
-    } while ((instruction[i] = strtok(NULL, delimiters)) != NULL);
-    if (is_instruction("cls")) return 0x00e0;
-    if (is_instruction("ret")) return 0x00ee;
-    if (is_instruction("jmp")) {
-        if (!is_reg(1)) {
-            return 0x1000 + set_0xxx(get_value(1));
-        } else {
-            return 0xb000 + set_0xxx(get_value(2));
-        }
-    }
-    if (is_instruction("call")) {
-        return 0x2000 + set_0xxx(get_value(1));
-    }
-    if (is_instruction("se")) {
-        if (is_reg(2)) {
-            return 0x5000 + set_0x00(get_register(1)) + set_00x0(get_register(2));
-        } else {
-            return 0x3000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
-        }
-    }
-    if (is_instruction("sne")) {
-        if (is_reg(2)) {
-            return 0x9000 + set_0x00(get_register(1)) + set_00x0(get_register(2));
-        } else {
-            return 0x4000 + set_0x00(get_register(1)) + get_value(2);
-        }
-    }
-    if (is_instruction("ld")) {
-        if (is_reg(1)) {
+        tokens = realloc(tokens, (1 + i) * sizeof(char *));
+    } while ((tokens[i] = strtok(NULL, delimiters)) != NULL);
+    instruction_type instruction_type = get_instruction(code);
+    switch (instruction_type) {
+        case CLS:
+            return 0x00e0;
+        case RET:
+            return 0x00ee;
+        case JMP:
+            if (!is_reg(1)) {
+                return 0x1000 + set_0xxx(get_value(1));
+            } else {
+                return 0xb000 + set_0xxx(get_value(2));
+            }
+        case CALL:
+            return 0x2000 + set_0xxx(get_value(1));
+        case SE:
             if (is_reg(2)) {
-                return 0x8000 + set_0x00(get_register(1)) + set_00x0(get_register(2));
-            } else if ((strcmp(instruction[2], "[I]") == 0)) {
-                return 0xf065 + set_0x00(get_register(1));
-            } else if ((strcmp(instruction[2], "DT") == 0)) {
-                return 0xf007 + set_0x00(get_register(1));
-            } else if ((strcmp(instruction[2], "KEY") == 0)) {
-                return 0xf00a + set_0x00(get_register(1));
+                return 0x5000 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            } else {
+                return 0x3000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
             }
-            return 0x6000 + set_0x00(get_register(1)) + get_value(2);
-        } else {
-            if (strcmp(instruction[1], "I") == 0) {
-                return 0xa000 + set_0xxx(get_value(2));
-            } else if (strcmp(instruction[1], "DT") == 0) {
-                return 0xf015 + set_0x00(get_register(2));
-            } else if (strcmp(instruction[1], "[I]") == 0) {
-                return 0xf055 + set_0x00(get_register(2));
+        case SNE:
+            if (is_reg(2)) {
+                return 0x9000 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            } else {
+                return 0x4000 + set_0x00(get_register(1)) + get_value(2);
             }
-        }
+        case LD:
+            if (is_reg(1)) {
+                if (is_reg(2)) {
+                    return 0x8000 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+                } else if ((strcmp(tokens[2], "[I]") == 0)) {
+                    return 0xf065 + set_0x00(get_register(1));
+                } else if ((strcmp(tokens[2], "DT") == 0)) {
+                    return 0xf007 + set_0x00(get_register(1));
+                } else if ((strcmp(tokens[2], "KEY") == 0)) {
+                    return 0xf00a + set_0x00(get_register(1));
+                }
+                return 0x6000 + set_0x00(get_register(1)) + get_value(2);
+            } else {
+                if (strcmp(tokens[1], "I") == 0) {
+                    return 0xa000 + set_0xxx(get_value(2));
+                } else if (strcmp(tokens[1], "DT") == 0) {
+                    return 0xf015 + set_0x00(get_register(2));
+                } else if (strcmp(tokens[1], "[I]") == 0) {
+                    return 0xf055 + set_0x00(get_register(2));
+                }
+            }
+        case ADD:
+            if (!is_reg(2)) {
+                return 0x7000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
+            } else if (is_reg(1) && is_reg(2)) {
+                return 0x8004 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            } else if (tokens[1][0] == 'I') {
+                return 0xf01e + set_0x00(get_register(2));
+            }
+        case RND:
+            return 0xc000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
+        case DRW:
+            return 0xd000 + set_0x00(get_register(1)) + set_00x0(get_register(2)) + set_000x(get_value(3));
+        case BCD:
+            return 0xf033 + set_0x00(get_register(1));
+        case SKP:
+            return 0xe09e + set_0x00(get_register(1));
+        case SKNP:
+            return 0xe0a1 + set_0x00(get_register(1));
+        case OR:
+            return 0x8001 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+        case AND:
+            return 0x8002 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+        case XOR:
+            return 0x8003 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+        case SUB:
+            return 0x8005 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+        case SHR:
+            return 0x8006 + set_0x00(get_register(1));
+        case SUBN:
+            return 0x8007 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+        case SHL:
+            return 0x800e + set_0x00(get_register(1));
+        case FONT:
+            return 0xf029 + set_0x00(get_register(1));
+        default:
+            return strtol(tokens[0], NULL, 0);
     }
-    if (is_instruction("add")) {
-        if (!is_reg(2)) {
-            return 0x7000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
-        } else if (is_reg(1) && is_reg(2)) {
-            return 0x8004 + set_0x00(get_register(1)) + set_00x0(get_register(2));
-        } else if (instruction[1][0] == 'I') {
-            return 0xf01e + set_0x00(get_register(2));
-        }
-    }
-    if (is_instruction("rnd")) {
-        return 0xc000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
-    }
-    if (is_instruction("drw")) {
-        return 0xd000 + set_0x00(get_register(1)) + set_00x0(get_register(2)) + set_000x(get_value(3));
-    }
-    if (is_instruction("bcd")) {
-        return 0xf033 + set_0x00(get_register(1));
-    }
-    if (is_instruction("skp")) {
-        return 0xe09e + set_0x00(get_register(1));
-    }
-    if (is_instruction("sknp")) {
-        return 0xe0a1 + set_0x00(get_register(1));
-    }
-    if (is_instruction("or")) {
-        return 0x8001 + set_0x00(get_register(1)) + set_00x0(get_register(2));
-    }
-    if (is_instruction("and")) {
-        return 0x8002 + set_0x00(get_register(1)) + set_00x0(get_register(2));
-    }
-    if (is_instruction("xor")) {
-        return 0x8003 + set_0x00(get_register(1)) + set_00x0(get_register(2));
-    }
-    if (is_instruction("sub")) {
-        return 0x8005 + set_0x00(get_register(1)) + set_00x0(get_register(2));
-    }
-    if (is_instruction("shr")) {
-        return 0x8006 + set_0x00(get_register(1));
-    }
-    if (is_instruction("subn")) {
-        return 0x8007 + set_0x00(get_register(1)) + set_00x0(get_register(2));
-    }
-    if (is_instruction("shl")) {
-        return 0x800e + set_0x00(get_register(1));
-    }
-    if (is_instruction("font")) {
-        return 0xf029 + set_0x00(get_register(1));
-    }
-    return strtol(instruction[0], NULL, 0);
 }
