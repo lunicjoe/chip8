@@ -40,8 +40,8 @@ void chip8_logging(Chip8 *chip8) {
         init_color(COLOR_YELLOW, 1000, 1000, 0);
         init_color(COLOR_BLACK, 0, 0, 0);
         init_pair(1, COLOR_YELLOW, COLOR_BLACK);
-        initialize = true;
         curs_set(0);
+        initialize = true;
     }
     if (logging && (chip8->pc != old_state.pc)) {
         memcpy(&old_state, chip8, sizeof(Chip8));

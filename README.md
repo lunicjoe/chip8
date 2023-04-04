@@ -1,5 +1,26 @@
 # Chip8 Emulator
 
+## Installation
+
+### Requirements
+- Cmake >= 3.23
+- SDL2 devtools
+- NCurses devtools
+
+### Compilation
+- clone the repository
+```sh
+git clone https://github.com/snakoin/chip8
+cd chip8/
+```
+- create a build directory
+```sh
+mkdir build/
+cd build/
+```
+- generate the make files using `cmake ..`
+- compile the project using `make`
+
 ## Usage
 
 ### Emulator
