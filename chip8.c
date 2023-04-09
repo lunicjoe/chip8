@@ -131,7 +131,9 @@ void chip8_render(SDL_Renderer *renderer) {
     for (int pixel = 0; pixel < SCREEN_WIDTH * SCREEN_HEIGHT; pixel++) {
         pixel_rect.x = pixel % SCREEN_WIDTH * PIXEL_SIZE;
         pixel_rect.y = (pixel - (pixel % SCREEN_WIDTH)) / SCREEN_WIDTH * PIXEL_SIZE;
-        if (chip8.graphics_memory[pixel]) SDL_RenderFillRect(renderer, &pixel_rect);
+        if (chip8.graphics_memory[pixel]) {
+            SDL_RenderFillRect(renderer, &pixel_rect);
+        }
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderDrawRect(renderer, &pixel_rect);
         SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0xff, 0);
@@ -177,7 +179,9 @@ void cpu_add_Vx_byte() {
 }
 void (*cpu_arithmetics[])();
 void cpu_arithmetic() {
-    if (cpu_arithmetics[chip8.opcode & 0xf] != NULL) cpu_arithmetics[chip8.opcode & 0xf]();
+    if (cpu_arithmetics[chip8.opcode & 0xf] != NULL) {
+        cpu_arithmetics[chip8.opcode & 0xf]();
+    }
 }
 void cpu_sne_Vx_Vx() {
     if (chip8.V[get_0x00] != chip8.V[get_00x0]) chip8.pc += 2;
@@ -206,10 +210,9 @@ void cpu_draw() {
     }
 }
 void cpu_skp_sknp() {
-    if (get_00xx == 0x9e) {
-        if (chip8.pressed_key[chip8.V[get_0x00]]) chip8.pc += 2;
-    } else if (get_00xx == 0xa1) {
-        if (!chip8.pressed_key[chip8.V[get_0x00]]) chip8.pc += 2;
+    if ((get_00xx == 0x9e) && chip8.pressed_key[chip8.V[get_0x00]]
+    || (get_00xx == 0xa1) && !chip8.pressed_key[chip8.V[get_0x00]]) {
+        chip8.pc += 2;
     }
 }
 void cpu_f() {
