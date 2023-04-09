@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <stdint.h>
-#include <string.h>
 #include "assembly.h"
 
 int main(int argc, char *argv[]) {
@@ -12,14 +10,25 @@ int main(int argc, char *argv[]) {
     }
 
     FILE *rom = fopen(argv[2], "wb");
-    char *line = NULL;
-    size_t length;
-    while (getline(&line, &length, code) != -1) {
-        line[strlen(line) - 1] = '\0';
-        uint16_t opcode = get_binary(line);
-        opcode = (opcode >> 8) | (opcode << 8);
-        fwrite(&opcode, 1, sizeof(opcode), rom);
+
+    char **lines;
+    int line_count = get_lines(code, &lines);
+
+    for (int i = 0; i < line_count; i++) {
+        remove_comment(lines[i]);
+        get_label(&lines[i]);
     }
+
+    for (int i = 0; i < line_count; i++) {
+        if (lines[i]) {
+            int token_count;
+            char **tokens = get_tokens(lines[i], &token_count);
+            uint16_t opcode = get_binary(tokens, token_count);
+            opcode = (opcode >> 8) | (opcode << 8);
+            fwrite(&opcode, 1, sizeof(opcode), rom);
+        }
+    }
+
     fclose(rom);
     fclose(code);
 }

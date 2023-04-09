@@ -1,3 +1,4 @@
+#include "assembly.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -24,12 +25,6 @@ uint8_t* get_rom(FILE *rom_file, long *rom_size) {
     fread(rom, sizeof(uint8_t), *rom_size, rom_file);
     fclose(rom_file);
     return rom;
-}
-
-#define set_instruction(text, ...) { \
-    size_t size = snprintf(NULL, 0, text, ##__VA_ARGS__) + 1; \
-    instruction = realloc(instruction, size); \
-    snprintf(instruction, size, text, ##__VA_ARGS__); \
 }
 
 char* get_asm_code(u_int16_t opcode) {
@@ -182,14 +177,7 @@ uint16_t get_register_value(char *instruction) {
     return strtol(&instruction[1], NULL, 16);
 }
 
-typedef enum {
-    CLS, RET, JMP, CALL, SE, SNE, LD, ADD, RND, DRW, BCD, SKP, SKNP, OR, AND, XOR, SUB, SHR, SUBN, SHL, FONT, OTHER
-} instruction_type;
-typedef struct {
-    char *string;
-    instruction_type type;
-} instruction;
-instruction instructions[] = {
+Instruction instructions[] = {
         {"cls", CLS},
         {"ret", RET},
         {"jmp", JMP},
@@ -212,27 +200,86 @@ instruction instructions[] = {
         {"shl", SHL},
         {"font", FONT},
 };
+char delimiters[] = " ,";
+int label_count = 0;
+Label *labels;
 
-const char delimiters[] = " ,";
-
-instruction_type get_instruction(char *code) {
-    char *instruction_str = strtok(code, delimiters);
-    for (int i = 0; i < sizeof(instructions) / sizeof(instruction); i++) {
-        if (strcmp(instruction_str, instructions[i].string) == 0) return instructions[i].type;
+instruction_type get_instruction(char *token) {
+    for (int i = 0; i < sizeof(instructions) / sizeof(Instruction); i++) {
+        if (strcmp(token, instructions[i].string) == 0) return instructions[i].type;
     }
     return OTHER;
 }
 
-uint16_t get_binary(char *code) {
-    int i = 0;
+int get_lines(FILE *code, char ***lines) {
+    int line_count = 0;
+    char *line = NULL;
+    size_t length;
+    while (getline(&line, &length, code) != -1) {
+        line[strlen(line) - 1] = '\0';
+        char *new_line = malloc(length);
+        strcpy(new_line, line);
+        *lines = realloc(*lines, (line_count + 1) * sizeof(char *));
+        (*lines)[line_count] = new_line;
+        line_count++;
+    }
+    return line_count;
+}
+
+void remove_comment(char *line) {
+    char *substr = strstr(line, "//");
+    if (substr != NULL) *substr = '\0';
+}
+
+void get_label(char **line) {
+    static int address = 0x200;
+    static int i_label = 0;
+    if ((*line)[0] == ':') {
+        (*line)++;
+        labels = realloc(labels, sizeof(Label) * (1 + i_label));
+        labels[i_label].name = malloc(strlen(*line) + 1);
+        strcpy(labels[i_label].name, *line);
+        labels[i_label].address = address;
+        i_label++;
+        *line = NULL;
+    } else {
+        address += 2;
+    }
+    label_count = i_label;
+}
+
+char **get_tokens(char *line, int *token_count) {
+    *token_count = 0;
     char **tokens = malloc(1 * sizeof(char*));
-    tokens[i] = strtok(code, delimiters);
+    tokens[*token_count] = strtok(line, delimiters);
     do {
-        i++;
-        tokens = realloc(tokens, (1 + i) * sizeof(char *));
-    } while ((tokens[i] = strtok(NULL, delimiters)) != NULL);
-    instruction_type instruction_type = get_instruction(code);
-    switch (instruction_type) {
+        (*token_count)++;
+        tokens = realloc(tokens, (1 + *token_count) * sizeof(char *));
+    } while ((tokens[*token_count] = strtok(NULL, delimiters)) != NULL);
+    return tokens;
+}
+
+char *replace_label(char *token) {
+    if (token[0] == '$') {
+        token++;
+        for (int i_label = 0; i_label < label_count; i_label++) {
+            if (strcmp(token, labels[i_label].name) == 0) {
+                int str_length = snprintf(NULL, 0, "0x%X", labels[i_label].address);
+                char *replaced_token = malloc(str_length + 1);
+                sprintf(replaced_token, "0x%X", labels[i_label].address);
+                return replaced_token;
+            }
+        }
+    }
+    return token;
+}
+
+uint16_t get_binary(char **tokens, int token_count) {
+    instruction_type instruction = get_instruction(tokens[0]);
+    for (int i = 0; i < token_count; i++) {
+        tokens[i] = replace_label(tokens[i]);
+    }
+    switch (instruction) {
         case CLS:
             return 0x00e0;
         case RET:
@@ -267,8 +314,9 @@ uint16_t get_binary(char *code) {
                     return 0xf007 + set_0x00(get_register(1));
                 } else if ((strcmp(tokens[2], "KEY") == 0)) {
                     return 0xf00a + set_0x00(get_register(1));
+                } else {
+                    return 0x6000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
                 }
-                return 0x6000 + set_0x00(get_register(1)) + get_value(2);
             } else {
                 if (strcmp(tokens[1], "I") == 0) {
                     return 0xa000 + set_0xxx(get_value(2));
