@@ -151,10 +151,6 @@ char* get_asm_code(u_int16_t opcode) {
     return instruction;
 }
 
-#define get_value(number) strtol(tokens[number], NULL, 0)
-#define is_reg(number) is_register(tokens[number])
-#define get_register(number) get_register_value(tokens[number])
-
 uint16_t set_000x(uint16_t number) {
     return number & 0xf;
 }
@@ -169,12 +165,6 @@ uint16_t set_0x00(uint16_t number) {
 }
 uint16_t set_00x0(uint16_t number) {
     return (number << 4) & 0xf0;
-}
-bool is_register(const char *instruction) {
-    return instruction[0] == 'V' || instruction[0] == 'v';
-}
-uint16_t get_register_value(char *instruction) {
-    return strtol(&instruction[1], NULL, 16);
 }
 
 Instruction instructions[] = {
@@ -274,6 +264,22 @@ char *replace_label(char *token) {
     return token;
 }
 
+uint16_t get_value(char *token) {
+    if (token[0] == '0' && (token[1] == 'b' || token[1] == 'B')) {
+        token += 2;
+        return strtol(token, NULL, 2);
+    }
+    return strtol(token, NULL, 0);
+}
+
+bool is_register(char *token) {
+    return token[0] == 'V' || token[0] == 'v';
+}
+
+uint16_t get_register(char *token) {
+    return strtol(&token[1], NULL, 16);
+}
+
 uint16_t get_binary(char **tokens, int token_count) {
     instruction_type instruction = get_instruction(tokens[0]);
     for (int i = 0; i < token_count; i++) {
@@ -285,82 +291,82 @@ uint16_t get_binary(char **tokens, int token_count) {
         case RET:
             return 0x00ee;
         case JMP:
-            if (!is_reg(1)) {
-                return 0x1000 + set_0xxx(get_value(1));
+            if (!is_register(tokens[1])) {
+                return 0x1000 + set_0xxx(get_value(tokens[1]));
             } else {
-                return 0xb000 + set_0xxx(get_value(2));
+                return 0xb000 + set_0xxx(get_value(tokens[2]));
             }
         case CALL:
-            return 0x2000 + set_0xxx(get_value(1));
+            return 0x2000 + set_0xxx(get_value(tokens[1]));
         case SE:
-            if (is_reg(2)) {
-                return 0x5000 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            if (is_register(tokens[2])) {
+                return 0x5000 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
             } else {
-                return 0x3000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
+                return 0x3000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
             }
         case SNE:
-            if (is_reg(2)) {
-                return 0x9000 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            if (is_register(tokens[2])) {
+                return 0x9000 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
             } else {
-                return 0x4000 + set_0x00(get_register(1)) + get_value(2);
+                return 0x4000 + set_0x00(get_register(tokens[1])) + get_value(tokens[2]);
             }
         case LD:
-            if (is_reg(1)) {
-                if (is_reg(2)) {
-                    return 0x8000 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            if (is_register(tokens[1])) {
+                if (is_register(tokens[2])) {
+                    return 0x8000 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
                 } else if ((strcmp(tokens[2], "[I]") == 0)) {
-                    return 0xf065 + set_0x00(get_register(1));
+                    return 0xf065 + set_0x00(get_register(tokens[1]));
                 } else if ((strcmp(tokens[2], "DT") == 0)) {
-                    return 0xf007 + set_0x00(get_register(1));
+                    return 0xf007 + set_0x00(get_register(tokens[1]));
                 } else if ((strcmp(tokens[2], "KEY") == 0)) {
-                    return 0xf00a + set_0x00(get_register(1));
+                    return 0xf00a + set_0x00(get_register(tokens[1]));
                 } else {
-                    return 0x6000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
+                    return 0x6000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
                 }
             } else {
                 if (strcmp(tokens[1], "I") == 0) {
-                    return 0xa000 + set_0xxx(get_value(2));
+                    return 0xa000 + set_0xxx(get_value(tokens[2]));
                 } else if (strcmp(tokens[1], "DT") == 0) {
-                    return 0xf015 + set_0x00(get_register(2));
+                    return 0xf015 + set_0x00(get_register(tokens[2]));
                 } else if (strcmp(tokens[1], "[I]") == 0) {
-                    return 0xf055 + set_0x00(get_register(2));
+                    return 0xf055 + set_0x00(get_register(tokens[2]));
                 }
             }
         case ADD:
-            if (!is_reg(2)) {
-                return 0x7000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
-            } else if (is_reg(1) && is_reg(2)) {
-                return 0x8004 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            if (!is_register(tokens[2])) {
+                return 0x7000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
+            } else if (is_register(tokens[1]) && is_register(tokens[2])) {
+                return 0x8004 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
             } else if (tokens[1][0] == 'I') {
-                return 0xf01e + set_0x00(get_register(2));
+                return 0xf01e + set_0x00(get_register(tokens[2]));
             }
         case RND:
-            return 0xc000 + set_0x00(get_register(1)) + set_00xx(get_value(2));
+            return 0xc000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
         case DRW:
-            return 0xd000 + set_0x00(get_register(1)) + set_00x0(get_register(2)) + set_000x(get_value(3));
+            return 0xd000 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2])) + set_000x(get_value(tokens[3]));
         case BCD:
-            return 0xf033 + set_0x00(get_register(1));
+            return 0xf033 + set_0x00(get_register(tokens[1]));
         case SKP:
-            return 0xe09e + set_0x00(get_register(1));
+            return 0xe09e + set_0x00(get_register(tokens[1]));
         case SKNP:
-            return 0xe0a1 + set_0x00(get_register(1));
+            return 0xe0a1 + set_0x00(get_register(tokens[1]));
         case OR:
-            return 0x8001 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            return 0x8001 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
         case AND:
-            return 0x8002 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            return 0x8002 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
         case XOR:
-            return 0x8003 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            return 0x8003 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
         case SUB:
-            return 0x8005 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            return 0x8005 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
         case SHR:
-            return 0x8006 + set_0x00(get_register(1));
+            return 0x8006 + set_0x00(get_register(tokens[1]));
         case SUBN:
-            return 0x8007 + set_0x00(get_register(1)) + set_00x0(get_register(2));
+            return 0x8007 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
         case SHL:
-            return 0x800e + set_0x00(get_register(1));
+            return 0x800e + set_0x00(get_register(tokens[1]));
         case FONT:
-            return 0xf029 + set_0x00(get_register(1));
+            return 0xf029 + set_0x00(get_register(tokens[1]));
         default:
-            return strtol(tokens[0], NULL, 0);
+            return get_value(tokens[0]);
     }
 }
