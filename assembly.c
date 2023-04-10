@@ -308,7 +308,7 @@ uint16_t get_binary(char **tokens, int token_count) {
             if (is_register(tokens[2])) {
                 return 0x9000 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
             } else {
-                return 0x4000 + set_0x00(get_register(tokens[1])) + get_value(tokens[2]);
+                return 0x4000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
             }
         case LD:
             if (is_register(tokens[1])) {
