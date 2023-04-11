@@ -207,6 +207,7 @@ int get_lines(FILE *code, char ***lines) {
     size_t length;
     while (getline(&line, &length, code) != -1) {
         line[strlen(line) - 1] = '\0';
+        if (line[0] == '\0' || line[0] == '#') continue;
         char *new_line = malloc(length);
         strcpy(new_line, line);
         *lines = realloc(*lines, (line_count + 1) * sizeof(char *));
@@ -216,9 +217,9 @@ int get_lines(FILE *code, char ***lines) {
     return line_count;
 }
 
-void remove_comment(char **line) {
-    if (*line[0] == '\0' || *line[0] == '#') {
-        *line = NULL;
+void preprocessor(char **lines, int line_count) {
+    for (int i = 0; i < line_count; i++) {
+        get_label(&lines[i]);
     }
 }
 

@@ -13,13 +13,7 @@ int main(int argc, char *argv[]) {
 
     char **lines;
     int line_count = get_lines(code, &lines);
-
-    for (int i = 0; i < line_count; i++) {
-        remove_comment(&lines[i]);
-        if (lines[i]) {
-            get_label(&lines[i]);
-        }
-    }
+    preprocessor(lines, line_count);
 
     for (int i = 0; i < line_count; i++) {
         if (lines[i]) {
