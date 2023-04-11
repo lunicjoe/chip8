@@ -216,9 +216,10 @@ int get_lines(FILE *code, char ***lines) {
     return line_count;
 }
 
-void remove_comment(char *line) {
-    char *substr = strstr(line, "//");
-    if (substr != NULL) *substr = '\0';
+void remove_comment(char **line) {
+    if (*line[0] == '\0' || *line[0] == '#') {
+        *line = NULL;
+    }
 }
 
 void get_label(char **line) {

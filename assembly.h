@@ -29,7 +29,7 @@ extern Label *labels;
 uint8_t* get_rom(FILE *rom_file, long *rom_size);
 char* get_asm_code(uint16_t opcode);
 int get_lines(FILE *code, char ***lines);
-void remove_comment(char *line);
+void remove_comment(char **line);
 void get_label(char **line);
 char **get_tokens(char *line, int *token_count);
 uint16_t get_binary(char **tokens, int token_count);
