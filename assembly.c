@@ -207,6 +207,9 @@ int get_lines(FILE *code, char ***lines) {
     size_t length;
     while (getline(&line, &length, code) != -1) {
         line[strlen(line) - 1] = '\0';
+        for(int i = 0; line[i]; i++){
+            line[i] = (char)tolower(line[i]);
+        }
         if (line[0] == '\0' || line[0] == '#') continue;
         char *new_line = malloc(length);
         strcpy(new_line, line);
@@ -267,7 +270,7 @@ char *replace_label(char *token) {
 }
 
 uint16_t get_value(char *token) {
-    if (token[0] == '0' && (token[1] == 'b' || token[1] == 'B')) {
+    if (token[0] == '0' && token[1] == 'b') {
         token += 2;
         return strtol(token, NULL, 2);
     }
@@ -275,7 +278,7 @@ uint16_t get_value(char *token) {
 }
 
 bool is_register(char *token) {
-    return token[0] == 'V' || token[0] == 'v';
+    return token[0] == 'v';
 }
 
 uint16_t get_register(char *token) {
@@ -316,21 +319,21 @@ uint16_t get_binary(char **tokens, int token_count) {
             if (is_register(tokens[1])) {
                 if (is_register(tokens[2])) {
                     return 0x8000 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
-                } else if ((strcmp(tokens[2], "[I]") == 0)) {
+                } else if ((strcmp(tokens[2], "[i]") == 0)) {
                     return 0xf065 + set_0x00(get_register(tokens[1]));
-                } else if ((strcmp(tokens[2], "DT") == 0)) {
+                } else if ((strcmp(tokens[2], "dt") == 0)) {
                     return 0xf007 + set_0x00(get_register(tokens[1]));
-                } else if ((strcmp(tokens[2], "KEY") == 0)) {
+                } else if ((strcmp(tokens[2], "key") == 0)) {
                     return 0xf00a + set_0x00(get_register(tokens[1]));
                 } else {
                     return 0x6000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
                 }
             } else {
-                if (strcmp(tokens[1], "I") == 0) {
+                if (strcmp(tokens[1], "i") == 0) {
                     return 0xa000 + set_0xxx(get_value(tokens[2]));
-                } else if (strcmp(tokens[1], "DT") == 0) {
+                } else if (strcmp(tokens[1], "dt") == 0) {
                     return 0xf015 + set_0x00(get_register(tokens[2]));
-                } else if (strcmp(tokens[1], "[I]") == 0) {
+                } else if (strcmp(tokens[1], "[i]") == 0) {
                     return 0xf055 + set_0x00(get_register(tokens[2]));
                 }
             }
@@ -339,7 +342,7 @@ uint16_t get_binary(char **tokens, int token_count) {
                 return 0x7000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
             } else if (is_register(tokens[1]) && is_register(tokens[2])) {
                 return 0x8004 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
-            } else if (tokens[1][0] == 'I') {
+            } else if (tokens[1][0] == 'i') {
                 return 0xf01e + set_0x00(get_register(tokens[2]));
             }
         case RND:
