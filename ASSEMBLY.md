@@ -2,6 +2,8 @@
 
 ## Specifications
 
+- Code is case-insensitive
+
 - Comments
 ```asm
 # lines who begin with '#' are comments
