@@ -32,7 +32,7 @@ uint8_t* get_rom(FILE *rom_file, long *rom_size) {
 #define get_00xx get_00xx(opcode)
 #define get_0xxx get_0xxx(opcode)
 
-char* get_asm_code(u_int16_t opcode) {
+char* get_asm_code(uint16_t opcode) {
     char *instruction = malloc(1);
     instruction[0] = '\0';
     switch (opcode & 0xf000) {
@@ -207,16 +207,16 @@ instruction_type get_instruction(char *token) {
 }
 
 int get_lines(FILE *code, char ***lines) {
+    *lines = malloc(0);
     int line_count = 0;
-    char *line = NULL;
-    size_t length;
-    while (getline(&line, &length, code) != -1) {
+    char line[100];
+    while (fgets(line, sizeof(line), code) != NULL) {
         line[strlen(line) - 1] = '\0';
-        for(int i = 0; line[i]; i++){
+        for (int i = 0; line[i]; i++) {
             line[i] = (char)tolower(line[i]);
         }
         if (line[0] == '\0' || line[0] == '#') continue;
-        char *new_line = malloc(length);
+        char *new_line = malloc(strlen(line) + 1);
         strcpy(new_line, line);
         *lines = realloc(*lines, (line_count + 1) * sizeof(char *));
         (*lines)[line_count] = new_line;

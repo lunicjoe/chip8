@@ -29,6 +29,7 @@ int disassemble(char *file, char *output) {
     }
     free(binary);
     fclose(assembly);
+    return 0;
 }
 
 

@@ -1,17 +1,21 @@
 #include "log.h"
 
 #include <stdio.h>
-#include <ncurses.h>
 #include <SDL2/SDL.h>
 #include "chip8.h"
 #include "assembly.h"
 
+#ifdef NCURSES_LOGGING
+    #include <ncurses.h>
+    WINDOW* w_instructions;
+    WINDOW* w_registers;
+    WINDOW* w_stack;
+#endif
+
+
 bool logging = false;
 bool initialize = false;
 Chip8 old_state;
-WINDOW *w_instructions;
-WINDOW *w_registers;
-WINDOW *w_stack;
 
 void chip8_logging(Chip8 *chip8) {
 #ifndef NCURSES_LOGGING
@@ -86,5 +90,7 @@ void chip8_logging(Chip8 *chip8) {
 }
 
 void chip8_logging_end() {
+#ifdef NCURSES_LOGGING
     endwin();
+#endif
 }
