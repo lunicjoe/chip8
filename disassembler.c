@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include "assembly.h"
 
 int disassemble(char *file, char *output) {
@@ -29,6 +28,7 @@ int disassemble(char *file, char *output) {
     }
     free(binary);
     fclose(assembly);
+    return 0;
 }
 
 
