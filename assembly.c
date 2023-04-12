@@ -27,12 +27,17 @@ uint8_t* get_rom(FILE *rom_file, long *rom_size) {
     return rom;
 }
 
+#define get_0x00 get_0x00(opcode)
+#define get_00x0 get_00x0(opcode)
+#define get_00xx get_00xx(opcode)
+#define get_0xxx get_0xxx(opcode)
+
 char* get_asm_code(u_int16_t opcode) {
     char *instruction = malloc(1);
     instruction[0] = '\0';
     switch (opcode & 0xf000) {
         case 0x0000:
-            switch (get_00xx(opcode)) {
+            switch (get_00xx) {
                 case 0x00e0:
                     set_instruction("cls");
                     break;
@@ -42,106 +47,106 @@ char* get_asm_code(u_int16_t opcode) {
             }
             break;
         case 0x1000:
-            set_instruction("jmp 0x%X", get_0xxx(opcode));
+            set_instruction("jmp 0x%X", get_0xxx);
             break;
         case 0x2000:
-            set_instruction("call 0x%X", get_0xxx(opcode));
+            set_instruction("call 0x%X", get_0xxx);
             break;
         case 0x3000:
-            set_instruction("se V%X, 0x%X", get_0x00(opcode), get_00xx(opcode));
+            set_instruction("se V%X, 0x%X", get_0x00, get_00xx);
             break;
         case 0x4000:
-            set_instruction("sne V%X, 0x%X", get_0x00(opcode), get_00xx(opcode));
+            set_instruction("sne V%X, 0x%X", get_0x00, get_00xx);
             break;
         case 0x5000:
-            set_instruction("se V%X, V%X", get_0x00(opcode), get_00x0(opcode));
+            set_instruction("se V%X, V%X", get_0x00, get_00x0);
             break;
         case 0x6000:
-            set_instruction("ld V%X, 0x%X", get_0x00(opcode), get_00xx(opcode));
+            set_instruction("ld V%X, 0x%X", get_0x00, get_00xx);
             break;
         case 0x7000:
-            set_instruction("add V%X, 0x%X", get_0x00(opcode), get_00xx(opcode));
+            set_instruction("add V%X, 0x%X", get_0x00, get_00xx);
             break;
         case 0x8000:
             switch (opcode & 0x000f) {
                 case 0x0:
-                    set_instruction("ld V%X, V%X", get_0x00(opcode), get_00x0(opcode));
+                    set_instruction("ld V%X, V%X", get_0x00, get_00x0);
                     break;
                 case 0x1:
-                    set_instruction("or V%X, V%X", get_0x00(opcode), get_00x0(opcode));
+                    set_instruction("or V%X, V%X", get_0x00, get_00x0);
                     break;
                 case 0x2:
-                    set_instruction("and V%X, V%X", get_0x00(opcode), get_00x0(opcode));
+                    set_instruction("and V%X, V%X", get_0x00, get_00x0);
                     break;
                 case 0x3:
-                    set_instruction("xor V%X, V%X", get_0x00(opcode), get_00x0(opcode));
+                    set_instruction("xor V%X, V%X", get_0x00, get_00x0);
                     break;
                 case 0x4:
-                    set_instruction("add V%X, V%X", get_0x00(opcode), get_00x0(opcode));
+                    set_instruction("add V%X, V%X", get_0x00, get_00x0);
                     break;
                 case 0x5:
-                    set_instruction("sub V%X, V%X", get_0x00(opcode), get_00x0(opcode));
+                    set_instruction("sub V%X, V%X", get_0x00, get_00x0);
                     break;
                 case 0x6:
-                    set_instruction("shr V%X", get_0x00(opcode));
+                    set_instruction("shr V%X", get_0x00);
                     break;
                 case 0x7:
-                    set_instruction("subn V%X, V%X", get_0x00(opcode), get_00x0(opcode));
+                    set_instruction("subn V%X, V%X", get_0x00, get_00x0);
                     break;
                 case 0xe:
-                    set_instruction("shl V%X", get_0x00(opcode));
+                    set_instruction("shl V%X", get_0x00);
                     break;
             }
             break;
         case 0x9000:
-            set_instruction("sne V%X, V%X", get_0x00(opcode), get_00x0(opcode));
+            set_instruction("sne V%X, V%X", get_0x00, get_00x0);
             break;
         case 0xa000:
-            set_instruction("ld I, 0x%X", get_0xxx(opcode));
+            set_instruction("ld I, 0x%X", get_0xxx);
             break;
         case 0xb000:
-            set_instruction("jmp V0, 0x%X", get_0xxx(opcode))
+            set_instruction("jmp V0, 0x%X", get_0xxx)
             break;
         case 0xc000:
-            set_instruction("rnd V%X, 0x%02X", get_0x00(opcode), get_00xx(opcode));
+            set_instruction("rnd V%X, 0x%02X", get_0x00, get_00xx);
             break;
         case 0xd000:
-            set_instruction("drw V%X, V%X, 0x%02X", get_0x00(opcode), get_00x0(opcode), opcode & 0xf);
+            set_instruction("drw V%X, V%X, 0x%02X", get_0x00, get_00x0, opcode & 0xf);
             break;
         case 0xe000:
-            switch (get_00xx(opcode)) {
+            switch (get_00xx) {
                 case 0x9e:
-                    set_instruction("skp V%X", get_0x00(opcode));
+                    set_instruction("skp V%X", get_0x00);
                     break;
                 case 0xa1:
-                    set_instruction("sknp V%X", get_0x00(opcode));
+                    set_instruction("sknp V%X", get_0x00);
                     break;
             }
         case 0xf000:
-            switch (get_00xx(opcode)) {
+            switch (get_00xx) {
                 case 0x7:
-                    set_instruction("ld V%X, DT", get_0x00(opcode));
+                    set_instruction("ld V%X, DT", get_0x00);
                     break;
                 case 0x0a:
-                    set_instruction("ld V%X, KEY", get_0x00(opcode));
+                    set_instruction("ld V%X, KEY", get_0x00);
                     break;
                 case 0x15:
-                    set_instruction("ld DT, V%X", get_0x00(opcode));
+                    set_instruction("ld DT, V%X", get_0x00);
                     break;
                 case 0x1e:
-                    set_instruction("add I, V%X", get_0x00(opcode));
+                    set_instruction("add I, V%X", get_0x00);
                     break;
                 case 0x29:
-                    set_instruction("font V%X", get_0x00(opcode));
+                    set_instruction("font V%X", get_0x00);
                     break;
                 case 0x33:
-                    set_instruction("bcd V%X", get_0x00(opcode));
+                    set_instruction("bcd V%X", get_0x00);
                     break;
                 case 0x55:
-                    set_instruction("ld [I], V%X", get_0x00(opcode));
+                    set_instruction("ld [I], V%X", get_0x00);
                     break;
                 case 0x65:
-                    set_instruction("ld V%X, [I]", get_0x00(opcode));
+                    set_instruction("ld V%X, [I]", get_0x00);
                     break;
             }
             break;
