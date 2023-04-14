@@ -2,7 +2,7 @@
 #define CHIP8_H
 
 #include <stdbool.h>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #define PIXEL_SIZE 10
 #define SCREEN_WIDTH 64

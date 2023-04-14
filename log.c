@@ -1,7 +1,7 @@
 #include "log.h"
 
 #include <stdio.h>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include "chip8.h"
 #include "assembly.h"
 
