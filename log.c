@@ -19,12 +19,13 @@ Chip8 old_state;
 
 void chip8_logging(Chip8 *chip8) {
 #ifndef NCURSES_LOGGING
-    if (logging) {
+    if (logging && (chip8->pc != old_state.pc)) {
+        memcpy(&old_state, chip8, sizeof(Chip8));
         char *instruction;
         instruction = get_asm_code(chip8->opcode);
         printf("0x%04x: %s0x%04x %s%s %sPC:0x%02X I:0x%02X V(", chip8->pc, GREY, chip8->opcode, YELLOW, instruction, GREY, chip8->pc, chip8->index);
         for (int v = 0; v < 16; v++) {
-            printf("%X:%02X", v, chip8->V[v]);
+            printf("%X:%X", v, chip8->V[v]);
             if (v < 15) printf(", ");
         }
         printf(") SP:0x%02X ", chip8->sp);

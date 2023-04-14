@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include "chip8.h"
 #include "log.h"
 #include "assembly.h"
