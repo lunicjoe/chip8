@@ -12,6 +12,7 @@
 
 extern bool logging;
 void chip8_logging(Chip8 *chip8);
+void chip8_logging_init();
 void chip8_logging_end();
 
 #endif //CHIP8_LOG_H

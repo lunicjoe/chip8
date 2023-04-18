@@ -59,6 +59,7 @@ uint8_t font[] = {
 #define get_0xxx get_0xxx(chip8.opcode)
 
 void chip8_init() {
+    chip8_logging_init();
     srand(time(NULL));
     SDL_RectEmpty(&pixel_rect);
     pixel_rect.h = PIXEL_SIZE;
