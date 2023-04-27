@@ -223,31 +223,47 @@ char *get_line(FILE *code) {
     return line;
 }
 
-int get_lines(FILE *code, char ***lines) {
-    *lines = malloc(0);
+void append_line(Line** head, char* value) {
+    Line* new_line = malloc(sizeof(Line));
+    Line* last = *head;
+    new_line->value = value;
+    new_line->next = NULL;
+    if (*head == NULL) {
+        *head = new_line;
+        return;
+    }
+    while (last->next != NULL) {
+        last = last->next;
+    }
+    last->next = new_line;
+}
+
+Line* get_lines(FILE *code) {
+    Line* line = malloc(sizeof(Line));
     int line_count = 0;
-    char *line;
-    while ((line = get_line(code)) != NULL) {
-        if (line[0] == '\0' || line[0] == '#') continue;
-        for (int i = 0; line[i]; i++) {
-            line[i] = (char)tolower(line[i]);
+    char *line_str;
+    while ((line_str = get_line(code)) != NULL) {
+        if (line_str[0] == '\0' || line_str[0] == '#') continue;
+        for (int i = 0; line_str[i]; i++) {
+            line_str[i] = (char)tolower(line_str[i]);
         }
-        char *new_line = malloc(strlen(line) + 1);
-        strcpy(new_line, line);
-        *lines = realloc(*lines, (line_count + 1) * sizeof(char *));
-        (*lines)[line_count] = new_line;
+        char *new_line = malloc(strlen(line_str) + 1);
+        strcpy(new_line, line_str);
+        append_line(&line, new_line);
         line_count++;
     }
-    return line_count;
+    return line;
 }
 
-void preprocessor(char **lines, int line_count) {
-    for (int i = 0; i < line_count; i++) {
-        get_label(&lines[i]);
+void preprocessor(Line* line) {
+    Line* last = line;
+    while (last->next) {
+        last = last->next;
+        get_label(&last->value);
     }
 }
 
-void get_label(char **line) {
+void get_label(char** line) {
     static int address = 0x200;
     static int i_label = 0;
     if ((*line)[0] == ':') {

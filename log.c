@@ -10,18 +10,16 @@
     WINDOW* w_instructions;
     WINDOW* w_registers;
     WINDOW* w_stack;
+    void draw_box(WINDOW* w_window, char* title) {
+        wattr_on(w_window, A_REVERSE, NULL);
+        box(w_window, 0, 0);
+        mvwprintw(w_window, 0, 1, "%s", title);
+        wattr_off(w_window, A_REVERSE, NULL);
+}
 #endif
-
 
 bool logging = false;
 Chip8 old_state;
-
-void draw_box(WINDOW* w_window, char* title) {
-    wattr_on(w_window, A_REVERSE, NULL);
-    box(w_window, 0, 0);
-    mvwprintw(w_window, 0, 1, "%s", title);
-    wattr_off(w_window, A_REVERSE, NULL);
-}
 
 void chip8_logging(Chip8 *chip8) {
 #ifndef NCURSES_LOGGING

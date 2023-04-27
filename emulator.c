@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
         chip8_render(renderer);
 
         SDL_RenderPresent(renderer);
-        SDL_Delay(10);
+        SDL_Delay(3);
     }
 
     SDL_DestroyRenderer(renderer);

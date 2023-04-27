@@ -11,14 +11,15 @@ int main(int argc, char *argv[]) {
 
     FILE *rom = fopen(argv[2], "wb");
 
-    char **lines;
-    int line_count = get_lines(code, &lines);
-    preprocessor(lines, line_count);
+    Line* line = get_lines(code);
+    preprocessor(line);
 
-    for (int i = 0; i < line_count; i++) {
-        if (lines[i]) {
+    Line* last = line;
+    while (last->next) {
+        last = last->next;
+        if (last->value) {
             int token_count;
-            char **tokens = get_tokens(lines[i], &token_count);
+            char **tokens = get_tokens(last->value, &token_count);
             uint16_t opcode = get_binary(tokens, token_count);
             opcode = (opcode >> 8) | (opcode << 8);
             fwrite(&opcode, 1, sizeof(opcode), rom);
