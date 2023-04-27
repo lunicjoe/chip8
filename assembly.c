@@ -223,19 +223,19 @@ char *get_line(FILE *code) {
     return line;
 }
 
-void append_line(Line** head, char* value) {
-    Line* new_line = malloc(sizeof(Line));
-    Line* last = *head;
-    new_line->value = value;
-    new_line->next = NULL;
+void append_line(Line **head, char *value) {
+    Line *new_line=malloc(sizeof(Line));
+    Line *last=*head;
+    new_line->value=value;
+    new_line->next=NULL;
     if (*head == NULL) {
-        *head = new_line;
+        *head=new_line;
         return;
     }
     while (last->next != NULL) {
-        last = last->next;
+        last=last->next;
     }
-    last->next = new_line;
+    last->next=new_line;
 }
 
 Line* get_lines(FILE *code) {
@@ -255,27 +255,27 @@ Line* get_lines(FILE *code) {
     return line;
 }
 
-void preprocessor(Line* line) {
-    Line* last = line;
+void preprocessor(Line *line) {
+    Line *last=line;
     while (last->next) {
-        last = last->next;
+        last=last->next;
         get_label(&last->value);
     }
 }
 
-void get_label(char** line) {
-    static int address = 0x200;
-    static int i_label = 0;
+void get_label(char **line) {
+    static int address=0x200;
+    static int i_label=0;
     if ((*line)[0] == ':') {
         (*line)++;
-        labels = realloc(labels, sizeof(Label) * (1 + i_label));
-        labels[i_label].name = malloc(strlen(*line) + 1);
+        labels=realloc(labels, sizeof(Label) * (1 + i_label));
+        labels[i_label].name=malloc(strlen(*line) + 1);
         strcpy(labels[i_label].name, *line);
-        labels[i_label].address = address;
+        labels[i_label].address=address;
         i_label++;
-        *line = NULL;
+        *line=NULL;
     } else {
-        address += 2;
+        address+=2;
     }
     label_count = i_label;
 }

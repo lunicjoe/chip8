@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 typedef struct line {
-    char* value;
-    struct line* next;
+    char *value;
+    struct line *next;
 } Line;
 
 typedef struct {
@@ -31,12 +31,19 @@ typedef struct {
 
 extern int label_count;
 extern Label *labels;
-uint8_t* get_rom(FILE *rom_file, long *rom_size);
-char* get_asm_code(uint16_t opcode);
-Line* get_lines(FILE *code);
-void preprocessor(Line* line);
-void get_label(char** line);
+
+uint8_t *get_rom(FILE *rom_file, long *rom_size);
+
+char *get_asm_code(uint16_t opcode);
+
+Line *get_lines(FILE *code);
+
+void preprocessor(Line *line);
+
+void get_label(char **line);
+
 char **get_tokens(char *line, int *token_count);
+
 uint16_t get_binary(char **tokens, int token_count);
 
 #endif //EMULATOR_ASSEMBLY_H
