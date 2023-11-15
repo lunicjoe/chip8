@@ -26,6 +26,12 @@ jmp $loop
 1289
 ```
 
+- Include
+
+```asm
+%include file.asm
+```
+
 ## Chip8 Instructions
 
 - Clear the screen

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "chip8.h"
 
 uint8_t get_0x00(uint16_t opcode) {
@@ -224,22 +225,31 @@ char *get_line(FILE *code) {
 }
 
 void append_line(Line **head, char *value) {
-    Line *new_line=malloc(sizeof(Line));
-    Line *last=*head;
-    new_line->value=value;
-    new_line->next=NULL;
-    if (*head == NULL) {
-        *head=new_line;
+    Line *new_line = malloc(sizeof(Line));
+    Line *last = *head;
+    new_line->value = value;
+    new_line->next = NULL;
+    if ((*head)->value == NULL) {
+        *head = new_line;
         return;
     }
     while (last->next != NULL) {
-        last=last->next;
+        last = last->next;
     }
-    last->next=new_line;
+    last->next = new_line;
+}
+
+void append_line_node(Line **head, Line *line) {
+    Line *last = *head;
+    while (last->next != NULL) {
+        last = last->next;
+    }
+    last->next = line;
 }
 
 Line* get_lines(FILE *code) {
-    Line* line = malloc(sizeof(Line));
+    Line *line = malloc(sizeof(Line));
+    line->next = NULL;
     int line_count = 0;
     char *line_str;
     while ((line_str = get_line(code)) != NULL) {
@@ -255,27 +265,37 @@ Line* get_lines(FILE *code) {
     return line;
 }
 
+void include_file(Line **line, char *value) {
+    if (strncmp(value, "%include ", strlen("%include ")) == 0) {
+        value += strlen("%include ");
+        FILE *code = fopen(value, "r");
+        Line *lines = get_lines(code);
+        append_line_node(&*line, lines);
+    }
+}
+
 void preprocessor(Line *line) {
-    Line *last=line;
-    while (last->next) {
-        last=last->next;
+    Line *last = line;
+    while (last) {
+        include_file(&last, last->value);
         get_label(&last->value);
+        last = last->next;
     }
 }
 
 void get_label(char **line) {
-    static int address=0x200;
-    static int i_label=0;
+    static int address = 0x200;
+    static int i_label = 0;
     if ((*line)[0] == ':') {
         (*line)++;
-        labels=realloc(labels, sizeof(Label) * (1 + i_label));
-        labels[i_label].name=malloc(strlen(*line) + 1);
+        labels = realloc(labels, sizeof(Label) * (1 + i_label));
+        labels[i_label].name = malloc(strlen(*line) + 1);
         strcpy(labels[i_label].name, *line);
-        labels[i_label].address=address;
+        labels[i_label].address = address;
         i_label++;
-        *line=NULL;
+        *line = NULL;
     } else {
-        address+=2;
+        address += 2;
     }
     label_count = i_label;
 }
@@ -335,51 +355,53 @@ uint16_t get_binary(char **tokens, int token_count) {
         case JMP:
             if (!is_register(tokens[1])) {
                 return 0x1000 + set_0xxx(get_value(tokens[1]));
-            } else {
-                return 0xb000 + set_0xxx(get_value(tokens[2]));
             }
+            return 0xb000 + set_0xxx(get_value(tokens[2]));
         case CALL:
             return 0x2000 + set_0xxx(get_value(tokens[1]));
         case SE:
             if (is_register(tokens[2])) {
                 return 0x5000 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
-            } else {
-                return 0x3000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
             }
+            return 0x3000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
         case SNE:
             if (is_register(tokens[2])) {
                 return 0x9000 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
-            } else {
-                return 0x4000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
             }
+            return 0x4000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
         case LD:
             if (is_register(tokens[1])) {
                 if (is_register(tokens[2])) {
                     return 0x8000 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
-                } else if ((strcmp(tokens[2], "[i]") == 0)) {
+                }
+                if (strcmp(tokens[2], "[i]") == 0) {
                     return 0xf065 + set_0x00(get_register(tokens[1]));
-                } else if ((strcmp(tokens[2], "dt") == 0)) {
+                }
+                if (strcmp(tokens[2], "dt") == 0) {
                     return 0xf007 + set_0x00(get_register(tokens[1]));
-                } else if ((strcmp(tokens[2], "key") == 0)) {
+                }
+                if (strcmp(tokens[2], "key") == 0) {
                     return 0xf00a + set_0x00(get_register(tokens[1]));
-                } else {
-                    return 0x6000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
                 }
-            } else {
-                if (strcmp(tokens[1], "i") == 0) {
-                    return 0xa000 + set_0xxx(get_value(tokens[2]));
-                } else if (strcmp(tokens[1], "dt") == 0) {
-                    return 0xf015 + set_0x00(get_register(tokens[2]));
-                } else if (strcmp(tokens[1], "[i]") == 0) {
-                    return 0xf055 + set_0x00(get_register(tokens[2]));
-                }
+                return 0x6000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
+            }
+            if (strcmp(tokens[1], "i") == 0) {
+                return 0xa000 + set_0xxx(get_value(tokens[2]));
+            }
+            if (strcmp(tokens[1], "dt") == 0) {
+                return 0xf015 + set_0x00(get_register(tokens[2]));
+            }
+            if (strcmp(tokens[1], "[i]") == 0) {
+                return 0xf055 + set_0x00(get_register(tokens[2]));
             }
         case ADD:
             if (!is_register(tokens[2])) {
                 return 0x7000 + set_0x00(get_register(tokens[1])) + set_00xx(get_value(tokens[2]));
-            } else if (is_register(tokens[1]) && is_register(tokens[2])) {
+            }
+            if (is_register(tokens[1]) && is_register(tokens[2])) {
                 return 0x8004 + set_0x00(get_register(tokens[1])) + set_00x0(get_register(tokens[2]));
-            } else if (tokens[1][0] == 'i') {
+            }
+            if (tokens[1][0] == 'i') {
                 return 0xf01e + set_0x00(get_register(tokens[2]));
             }
         case RND:
