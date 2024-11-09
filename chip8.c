@@ -61,9 +61,7 @@ uint8_t font[] = {
 void chip8_init() {
     chip8_logging_init();
     srand(time(NULL));
-    SDL_RectEmpty(&pixel_rect);
-    pixel_rect.h = PIXEL_SIZE;
-    pixel_rect.w = PIXEL_SIZE;
+    init_pixel();
     chip8_states = malloc(sizeof(Chip8));
     chip8.opcode = 0;
     chip8.pc = START_ADDRESS;
@@ -76,9 +74,16 @@ void chip8_init() {
     }
 }
 
+void init_pixel() {
+    SDL_RectEmpty(&pixel_rect);
+    pixel_rect.h = PIXEL_SIZE;
+    pixel_rect.w = PIXEL_SIZE;
+}
+
 int chip8_load_rom(char *file) {
     FILE *rom_file = fopen(file, "rb");
     if (rom_file == NULL) return 0;
+
     long rom_size;
     uint8_t *rom = get_rom(rom_file, &rom_size);
     for (int i_byte = 0; i_byte + 1 < rom_size; i_byte += 2) {
